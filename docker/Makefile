@@ -125,7 +125,10 @@ define compile
 	$(CMAKE) -E make_directory $(BUILD_PATH)/$(PROJECT_NAME).deb
 	$(DOCKER) network inspect $(DOCKER_NETWORK_NAME) || $(DOCKER) network create $(DOCKER_NETWORK_NAME)
 	$(DOCKER) network ls
-	$(DOCKER) run -ti --rm -v $(SOURCE_TREE_PATH):/opt/$(PROJECT_NAME).sources -v $(BUILD_PATH)/$(PROJECT_NAME).build:/opt/$(PROJECT_NAME).build -v $(CCACHE_PATH):/opt/ccache -v $(BUILD_PATH)/opt/$(DEST_DIR):/opt/$(DEST_DIR) -v $(SOURCE_TREE_PATH)/docker/completeBuild.sh:/opt/completeBuild.sh -w /opt $(BASE_IMAGE_DEV):$(BASE_IMAGE_DEV_VERSION) /opt/completeBuild.sh $(RUN_BUILD_AS) $(RUN_BUILD_UID_AS) $(PACKAGING_ENABLED)
+	#####CONSOLE VERSION:
+	#$(DOCKER) run -ti --rm -v $(SOURCE_TREE_PATH):/opt/$(PROJECT_NAME).sources -v $(BUILD_PATH)/$(PROJECT_NAME).build:/opt/$(PROJECT_NAME).build -v $(CCACHE_PATH):/opt/ccache -v $(BUILD_PATH)/opt/$(DEST_DIR):/opt/$(DEST_DIR) -v $(SOURCE_TREE_PATH)/docker/completeBuild.sh:/opt/completeBuild.sh -w /opt $(BASE_IMAGE_DEV):$(BASE_IMAGE_DEV_VERSION) /opt/completeBuild.sh $(RUN_BUILD_AS) $(RUN_BUILD_UID_AS) $(PACKAGING_ENABLED)
+	#####ECLIPSE VERSION:
+	$(DOCKER) run --rm -v $(SOURCE_TREE_PATH):/opt/$(PROJECT_NAME).sources -v $(BUILD_PATH)/$(PROJECT_NAME).build:/opt/$(PROJECT_NAME).build -v $(CCACHE_PATH):/opt/ccache -v $(BUILD_PATH)/opt/$(DEST_DIR):/opt/$(DEST_DIR) -v $(SOURCE_TREE_PATH)/docker/completeBuild.sh:/opt/completeBuild.sh -w /opt $(BASE_IMAGE_DEV):$(BASE_IMAGE_DEV_VERSION) /opt/completeBuild.sh $(RUN_BUILD_AS) $(RUN_BUILD_UID_AS) $(PACKAGING_ENABLED)
 	$(DOCKER) network rm $(DOCKER_NETWORK_NAME)
 	mkdir -p $(PACKAGES_DIR)/$(DOCKER_IMAGE_NAME) && for i in $$(find $(BUILD_PATH)/$(PROJECT_NAME).build -type f -name "*deb" | grep -v CPack); do cp $$i $(PACKAGES_DIR)/$(DOCKER_IMAGE_NAME); done
 	touch $(BUILD_PATH)/$(PROJECT_NAME).build/build.incremental
