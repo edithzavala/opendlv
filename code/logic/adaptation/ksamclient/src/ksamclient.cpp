@@ -38,12 +38,20 @@
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
 #include "odvdopendlvdata/GeneratedHeaders_ODVDOpenDLVData.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
+#include "automotivedata/GeneratedHeaders_AutomotiveData.h"
+#include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
 
 #include "../include/ksamclient.hpp"
 
 namespace opendlv {
 namespace logic {
 namespace adaptation {
+
+//using namespace std;
+//using namespace odcore::base;
+//using namespace odcore::base::module;
+//using namespace odcore::data;
+//using namespace automotive;
 
 /**
   * Constructor.
@@ -86,7 +94,7 @@ void KsamClient::tearDown()
  */
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
-	std::string data("{'systemId':'opendDlvMonitor', 'Monitor':'Camera', 'measure':'");
+	std::string data("{'timeStamp':'"+ a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms() + "','monitors': [{'monitorId':");
 	bool sendMessage = false;
 
 	if (a_c.getDataType() == odcore::data::image::SharedImage::ID()) {
@@ -98,39 +106,58 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
 
 	  if (sharedMem->isValid()) {
 		  	const uint32_t nrChannels = sharedImg.getBytesPerPixel();
-		  	data += std::to_string(nrChannels) + "'}";
-//		  	sendMessage  = true;
+		  	data += "'odsimcamera','measurements': [{'varId':'pixelsPerByte','measures': [{'mTimeStamp': '" + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()+ "','value':'" + std::to_string(nrChannels) + "'}]}]}]}";
+//		  	std::cout << data << std::endl;
+		  	sendMessage  = true;
 	  } else {
 		std::cout << "[" << getName() << "] " << "Sharedmem is not valid." << std::endl;
 	  }
 	}
 
+	if (a_c.getDataType() == automotive::miniature::SensorBoardData::ID()) {
+		automotive::miniature::SensorBoardData sbd = a_c.getData<automotive::miniature::SensorBoardData> ();
+
+	  	const double distance = sbd.getValueForKey_MapOfDistances(2);
+		data += "'irus','measurements': [{'varId':'distance','measures': [{'mTimeStamp': '" + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()+ "','value':'" + std::to_string(distance) + "'}]}]}]}";
+//		std::cout << data << std::endl;
+		sendMessage  = true;
+	}
+
+//	if (a_c.getDataType() == automotive::VehicleData::ID()) {
+//		automotive::VehicleData vd = a_c.getData<automotive::VehicleData> ();
+//
+//	  	const double speed = vd.getSpeed();
+//		data += "'simvehicle','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '" + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()+ "','value':'" + std::to_string(speed) + "'}]}]}]}";
+//		std::cout << data << std::endl;
+//		sendMessage  = true;
+//	}
 
 	if(sendMessage){
-		int socket_client = socket(AF_INET, SOCK_STREAM, 0);
-
-		struct sockaddr_in server;
-		server.sin_family = AF_INET;
-		server.sin_port = htons(8083);
-		server.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-		if(socket_client < 0)
-		{
-			std::cout << "Socket could not be created" << std::endl;
-		}
-
-		if(connect(socket_client, (struct sockaddr *)&server, sizeof(server))<0)
-		{
-			std::cout << "Connection failed due to port and ip problems" << std::endl;
-		}
-
 		std::cout << data << std::endl;
-		if( write(socket_client, data.c_str(), strlen(data.c_str())) < 0)
-		{
-			std::cout << "Data send failed" << std::endl;
-		}
-
-		close(socket_client);
+//		int socket_client = socket(AF_INET, SOCK_STREAM, 0);
+//
+//		struct sockaddr_in server;
+//		server.sin_family = AF_INET;
+//		server.sin_port = htons(8083);
+//		server.sin_addr.s_addr = inet_addr("127.0.0.1");
+//
+//		if(socket_client < 0)
+//		{
+//			std::cout << "Socket could not be created" << std::endl;
+//		}
+//
+//		if(connect(socket_client, (struct sockaddr *)&server, sizeof(server))<0)
+//		{
+//			std::cout << "Connection failed due to port and ip problems" << std::endl;
+//		}
+//
+//		std::cout << data << std::endl;
+//		if( write(socket_client, data.c_str(), strlen(data.c_str())) < 0)
+//		{
+//			std::cout << "Data send failed" << std::endl;
+//		}
+//
+//		close(socket_client);
 	}
 
 
