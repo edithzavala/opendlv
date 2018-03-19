@@ -94,35 +94,59 @@ void KsamClient::tearDown()
  */
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
-	std::string data("{'timeStamp':'"+ a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms() + "','monitors': [{'monitorId':");
+  std::string data(
+          "{'timeStamp':'" + a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms()
+                  + "','monitors': [");
 	bool sendMessage = false;
 
 	if (a_c.getDataType() == odcore::data::image::SharedImage::ID()) {
 		odcore::data::image::SharedImage sharedImg =
 		        a_c.getData<odcore::data::image::SharedImage>();
-		std::shared_ptr<odcore::wrapper::SharedMemory> sharedMem(
-		      odcore::wrapper::SharedMemoryFactory::attachToSharedMemory(
-		    		  sharedImg.getName()));
-
-	  if (sharedMem->isValid()) {
-		  	const uint32_t nrChannels = sharedImg.getBytesPerPixel();
-		  	data += "'odsimcamera','measurements': [{'varId':'pixelsPerByte','measures': [{'mTimeStamp': '" + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()+ "','value':'" + std::to_string(nrChannels) + "'}]}]}]}";
+    data +=
+            "{'monitorId':'odsimcamera','measurements': [{'varId':'name','measures': [{'mTimeStamp': '"
+                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + "','value':'" + sharedImg.getName() + "'}]}]}]}";
 //		  	std::cout << data << std::endl;
-		  	sendMessage  = true;
-	  } else {
-		std::cout << "[" << getName() << "] " << "Sharedmem is not valid." << std::endl;
-	  }
+		sendMessage  = true;
 	}
 
 	if (a_c.getDataType() == automotive::miniature::SensorBoardData::ID()) {
 		automotive::miniature::SensorBoardData sbd = a_c.getData<automotive::miniature::SensorBoardData> ();
 
-	  	const double distance = sbd.getValueForKey_MapOfDistances(2);
-		data += "'irus','measurements': [{'varId':'distance','measures': [{'mTimeStamp': '" + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()+ "','value':'" + std::to_string(distance) + "'}]}]}]}";
+	  	const double i_frontRightDistance = sbd.getValueForKey_MapOfDistances(0);
+	  	const double i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
+	  	const double i_rearRightDistance = sbd.getValueForKey_MapOfDistances(2);
+	  	const double u_frontCenterDistance = sbd.getValueForKey_MapOfDistances(3);
+	  	const double u_frontRightDistance = sbd.getValueForKey_MapOfDistances(4);
+	  	const double u_rearRightDistance = sbd.getValueForKey_MapOfDistances(5);
+    data +=
+            "{'monitorId':'i_frontRight','measurements': [{'varId':'i_frontRightDistance','measures': [{'mTimeStamp': '"
+                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + "','value':'" + std::to_string(i_frontRightDistance)
+                    + "'}]}]},"
+                    + "{'monitorId':'i_rear','measurements': [{'varId':'i_rearDistance','measures': [{'mTimeStamp': '"
+                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + "','value':'" + std::to_string(i_rearDistance) + "'}]}]},"
+                    + "{'monitorId':'i_rearRight','measurements': [{'varId':'i_rearRightDistance','measures': [{'mTimeStamp': '"
+                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + "','value':'" + std::to_string(i_rearRightDistance)
+                    + "'}]}]},"
+                    + "{'monitorId':'u_frontCenter','measurements': [{'varId':'u_frontCenterDistance','measures': [{'mTimeStamp': '"
+                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + "','value':'" + std::to_string(u_frontCenterDistance)
+                    + "'}]}]},"
+                    + "{'monitorId':'u_frontRight','measurements': [{'varId':'u_frontRightDistance','measures': [{'mTimeStamp': '"
+                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + "','value':'" + std::to_string(u_frontRightDistance)
+                    + "'}]}]},"
+                    + "{'monitorId':'u_rearRight','measurements': [{'varId':'u_rearRightDistance','measures': [{'mTimeStamp': '"
+                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + "','value':'" + std::to_string(u_rearRightDistance)
+                    + "'}]}]}"
+                    + "]}";
 //		std::cout << data << std::endl;
 		sendMessage  = true;
 	}
-
 //	if (a_c.getDataType() == automotive::VehicleData::ID()) {
 //		automotive::VehicleData vd = a_c.getData<automotive::VehicleData> ();
 //
@@ -133,31 +157,31 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
 //	}
 
 	if(sendMessage){
-		std::cout << data << std::endl;
-//		int socket_client = socket(AF_INET, SOCK_STREAM, 0);
-//
-//		struct sockaddr_in server;
-//		server.sin_family = AF_INET;
-//		server.sin_port = htons(8083);
-//		server.sin_addr.s_addr = inet_addr("127.0.0.1");
-//
-//		if(socket_client < 0)
-//		{
-//			std::cout << "Socket could not be created" << std::endl;
-//		}
-//
-//		if(connect(socket_client, (struct sockaddr *)&server, sizeof(server))<0)
-//		{
-//			std::cout << "Connection failed due to port and ip problems" << std::endl;
-//		}
-//
 //		std::cout << data << std::endl;
-//		if( write(socket_client, data.c_str(), strlen(data.c_str())) < 0)
-//		{
-//			std::cout << "Data send failed" << std::endl;
-//		}
-//
-//		close(socket_client);
+		int socket_client = socket(AF_INET, SOCK_STREAM, 0);
+
+		struct sockaddr_in server;
+		server.sin_family = AF_INET;
+		server.sin_port = htons(8083);
+		server.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+		if(socket_client < 0)
+		{
+			std::cout << "Socket could not be created" << std::endl;
+		}
+
+		if(connect(socket_client, (struct sockaddr *)&server, sizeof(server))<0)
+		{
+			std::cout << "Connection failed due to port and ip problems" << std::endl;
+		}
+
+		std::cout << data << std::endl;
+		if( write(socket_client, data.c_str(), strlen(data.c_str())) < 0)
+		{
+			std::cout << "Data send failed" << std::endl;
+		}
+
+		close(socket_client);
 	}
 
 

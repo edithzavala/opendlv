@@ -17,6 +17,7 @@
 #
 # Date: 2016-10-13
 FROM BASEIMAGE
+
 MAINTAINER Chalmers Revere "revere@chalmers.se"
 
 # Add binaries.
@@ -29,4 +30,5 @@ RUN chown -R 1000:1000 /opt/opendlv
 ENV QT_X11_NO_MITSHM=1
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/opendlv/lib
 WORKDIR /opt/opendlv/bin
+
 

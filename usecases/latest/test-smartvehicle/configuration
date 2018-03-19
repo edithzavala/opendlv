@@ -13,8 +13,11 @@ global.reference.WGS84.longitude = -11.93831921
 global.buffer.memorySegmentSize = 480000 # Size of a memory segment in bytes.
 global.buffer.numberOfMemorySegments = 50 # Number of memory segments.
 
-global.session.expectedModules = odsimirus, odsimvehicle, lanefollower, odcockpit, adaptation-ksamclient, adaptation-ksamserver, odsimcamera
+global.session.expectedModules = odsimirus, odsimvehicle , lanefollower, odcockpit, adaptation-ksamclient, adaptation-ksamserver, odsimcamera
+#, odsimvehicle:2
 
+
+#odsimcamera.debug = 0 # set to 0 to disable any windows and further output
 
 ### CONFIGURATION ODSUPERCOMPONENT
 odsupercomponent.pulseshift.shift = 10000 # (in microseconds)
@@ -61,6 +64,7 @@ odsimirus.sensor3.angleFOV = 20                 # In degrees.
 odsimirus.sensor3.distanceFOV = 40              # In meters.
 odsimirus.sensor3.clampDistance = 39            # Any distances greater than this distance will be ignored and -1 will be returned.
 odsimirus.sensor3.showFOV = 1                   # Show FOV in monitor.
+odsimirus.sensor3.faultModel.skip = 1
 
 odsimirus.sensor4.id = 4                        # This ID is used in SensorBoardData structure.
 odsimirus.sensor4.name = UltraSonic_FrontRight  # Name of the sensor
@@ -102,8 +106,30 @@ odsimvehicle.LinearBicycleModel.tauBrake=1.0
 odsimvehicle.LinearBicycleModel.KstaticBrake=100.0
 odsimvehicle.LinearBicycleModel.KdynamicBrake=60.0
 
+### CONFIGURATION ODSIMVEHICLE2
+#odsimvehicle:2.posX = 0                     # Initial position X in cartesian coordinates.
+#odsimvehicle:2.posY = 5                     # Initial position Y in cartesian coordinates.
+#odsimvehicle:2.headingDEG = 90
+#odsimvehicle:2.model=LinearBicycleModelNew  # Which motion model to be used: LinearBicycleModelNew or LinearBicycleModel (for CaroloCup 2013!).
+#odsimvehicle:2.LinearBicycleModelNew.withSpeedController=1          # iff 1: use the VehicleControl.m_speed field; otherwise, ignore m_speed and use VehicleControl.m_acceleration field
+#odsimvehicle:2.LinearBicycleModelNew.minimumTurningRadiusLeft=4.85  # Minimum turning radius to the left (for calculating maximum steering angle to the left); Attention! we used data from the miniature #vehicle Meili and thus, all values are scaled by factor 10 to be compatible with the simulation!
+#odsimvehicle:2.LinearBicycleModelNew.minimumTurningRadiusRight=5.32 # Minimum turning radius to the right (for calculating maximum steering angle to the right); Attention! we used data from the miniature #vehicle Meili and thus, all values are scaled by factor 10 to be compatible with the simulation!
+#odsimvehicle:2.LinearBicycleModelNew.wheelbase=2.65                 # Wheelbase; Attention! we used data from the miniature vehicle Meili and thus, all values are scaled by factor 10 to be compatible #with the simulation!
+#odsimvehicle:2.LinearBicycleModelNew.invertedSteering=0             # iff 0: interpret neg. steering wheel angles as steering to the left; iff 1: otherwise
+#odsimvehicle:2.LinearBicycleModelNew.maxSpeed=2.0                   # maxium speed in m/ss
+#odsimvehicle:2.LinearBicycleModel.minimumTurningRadius=4.24    # Minimum turning radius in m.
+#odsimvehicle:2.LinearBicycleModel.vehicleMass=1700.0           # Mass in kg.
+#odsimvehicle:2.LinearBicycleModel.adherenceCoefficient=100.0   # N per MPS (squared).
+#odsimvehicle:2.LinearBicycleModel.idleForce=200.0              # Force if vehicle is in idle (no gear) in N.
+#odsimvehicle:2.LinearBicycleModel.Ksteering=2.0
+#odsimvehicle:2.LinearBicycleModel.maximumSteeringRate=50.0
+#odsimvehicle:2.LinearBicycleModel.Kthrottle=40.0
+#odsimvehicle:2.LinearBicycleModel.tauBrake=1.0
+#odsimvehicle:2.LinearBicycleModel.KstaticBrake=100.0
+#odsimvehicle:2.LinearBicycleModel.KdynamicBrake=60.0
+
 ### CONFIGURATION LANEFOLLOWER
-lanefollower.camera_id = 2 # select here the proper camera
+lanefollower.camera_id = 1 # select here the proper camera
 lanefollower.debug = 1 # set to 0 to disable any windows and further output
 
 ### CONFIGURATION ODCOCKPIT

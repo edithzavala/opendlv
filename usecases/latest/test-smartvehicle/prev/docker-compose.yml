@@ -52,11 +52,42 @@ services:
         network_mode: host
         ipc: host
         command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --cid=${CID}"
+
+ # microservice for odsimvehicle
+    odsimvehicle:
+        build: .
+        depends_on:
+            - odsupercomponent
+        working_dir: /opt/opendlv.data/
+        volumes:
+            - /tmp/.X11-unix:/tmp/.X11-unix
+            - .:/opt/opendlv.data
+        network_mode: host
+        ipc: host
+        command: "/opt/od4/bin/odsimvehicle --cid=${CID} --freq=10"
+
+
+ # microservice for odsimirus
+    odsimirus:
+        build: .
+        depends_on:
+            - odsupercomponent
+            - odsimvehicle
+            - adaptation-ksamclient
+        working_dir: /opt/opendlv.data/
+        volumes:
+            - /tmp/.X11-unix:/tmp/.X11-unix
+            - .:/opt/opendlv.data
+        network_mode: host
+        ipc: host
+        command: "/opt/od4/bin/odsimirus --cid=${CID} --freq=10"
+
  # microservice for odcockpit
     odcockpit:
         build: .
         depends_on:
             - odsupercomponent
+            - odsimvehicle
         environment:
             - DISPLAY=$DISPLAY
         working_dir: /opt/opendlv.data/
