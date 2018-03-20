@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017 Chalmers Revere
+ * Copyright (C) 2017 Chalmers Revere, UPC
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -103,9 +103,9 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
 		odcore::data::image::SharedImage sharedImg =
 		        a_c.getData<odcore::data::image::SharedImage>();
     data +=
-            "{'monitorId':'odsimcamera','measurements': [{'varId':'name','measures': [{'mTimeStamp': '"
+            "{'monitorId':'odsimcamera','measurements': [{'varId':'imgSize','measures': [{'mTimeStamp': '"
                     + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
-                    + "','value':'" + sharedImg.getName() + "'}]}]}]}";
+                    + "','value':'" + sharedImg.getSize() + "'}]}]}]}";
 //		  	std::cout << data << std::endl;
 		sendMessage  = true;
 	}
