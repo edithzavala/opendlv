@@ -95,7 +95,9 @@ void KsamClient::tearDown()
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
   std::string data(
-          "{'timeStamp':'" + a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms()
+          "{'systemId' : 'openDlvMonitor_v"
+                  + std::to_string(a_c.getSenderStamp()) + "','timeStamp':'"
+                  + a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms()
                   + "','monitors': [");
 	bool sendMessage = false;
 
@@ -105,7 +107,8 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
     data +=
             "{'monitorId':'odsimcamera','measurements': [{'varId':'imgSize','measures': [{'mTimeStamp': '"
                     + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
-                    + "','value':'" + sharedImg.getSize() + "'}]}]}]}";
+                    + "','value':'" + std::to_string(sharedImg.getSize())
+                    + "'}]}]}]}";
 //		  	std::cout << data << std::endl;
 		sendMessage  = true;
 	}
@@ -113,12 +116,17 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
 	if (a_c.getDataType() == automotive::miniature::SensorBoardData::ID()) {
 		automotive::miniature::SensorBoardData sbd = a_c.getData<automotive::miniature::SensorBoardData> ();
 
-	  	const double i_frontRightDistance = sbd.getValueForKey_MapOfDistances(0);
-	  	const double i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
-	  	const double i_rearRightDistance = sbd.getValueForKey_MapOfDistances(2);
-	  	const double u_frontCenterDistance = sbd.getValueForKey_MapOfDistances(3);
-	  	const double u_frontRightDistance = sbd.getValueForKey_MapOfDistances(4);
-	  	const double u_rearRightDistance = sbd.getValueForKey_MapOfDistances(5);
+    double i_frontRightDistance = sbd.getValueForKey_MapOfDistances(0);
+    double i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
+//    if (a_c.getSenderStamp() == 0) {
+//      i_rearDistance = -2;
+//    } else {
+//      i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
+//    }
+    double i_rearRightDistance = sbd.getValueForKey_MapOfDistances(2);
+    double u_frontCenterDistance = sbd.getValueForKey_MapOfDistances(3);
+    double u_frontRightDistance = sbd.getValueForKey_MapOfDistances(4);
+    double u_rearRightDistance = sbd.getValueForKey_MapOfDistances(5);
     data +=
             "{'monitorId':'i_frontRight','measurements': [{'varId':'i_frontRightDistance','measures': [{'mTimeStamp': '"
                     + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()

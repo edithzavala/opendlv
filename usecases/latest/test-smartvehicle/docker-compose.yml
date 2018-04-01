@@ -25,7 +25,7 @@ services:
         network_mode: "host"
         volumes:
         - .:/opt/opendlv.data
-        command: "/opt/od4/bin/odsupercomponent --cid=${CID} --verbose=1 --configuration=/opt/opendlv.data/configuration"
+        command: "/opt/od4/bin/odsupercomponent --cid=${CID} --id=5 --verbose=1 --configuration=/opt/opendlv.data/configuration"
 
  # microservice for adaptation-ksamclient
     adaptation-ksamclient:
@@ -38,7 +38,7 @@ services:
             - .:/opt/opendlv.data
         network_mode: host
         ipc: host
-        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamclient --cid=${CID}"
+        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamclient --id=3 --cid=${CID}"
 
  # microservice for adaptation-ksamserver
     adaptation-ksamserver:
@@ -51,18 +51,4 @@ services:
             - .:/opt/opendlv.data
         network_mode: host
         ipc: host
-        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --cid=${CID}"
- # microservice for odcockpit
-    odcockpit:
-        build: .
-        depends_on:
-            - odsupercomponent
-        environment:
-            - DISPLAY=$DISPLAY
-        working_dir: /opt/opendlv.data/
-        volumes:
-            - /tmp/.X11-unix:/tmp/.X11-unix
-            - .:/opt/opendlv.data
-        network_mode: host
-        ipc: host
-        command: "/opt/od4/bin/odcockpit --cid=${CID}"
+        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
