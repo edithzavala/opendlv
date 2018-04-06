@@ -97,7 +97,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
   std::string data(
           "{'systemId' : 'openDlvMonitor_v"
                   + std::to_string(a_c.getSenderStamp()) + "','timeStamp':'"
-                  + a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms()
+                  + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
                   + "','monitors': [");
 	bool sendMessage = false;
 
@@ -106,7 +106,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
 		        a_c.getData<odcore::data::image::SharedImage>();
     data +=
             "{'monitorId':'odsimcamera','measurements': [{'varId':'imgSize','measures': [{'mTimeStamp': '"
-                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(sharedImg.getSize())
                     + "'}]}]}]}";
 //		  	std::cout << data << std::endl;
@@ -129,26 +129,26 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
     double u_rearRightDistance = sbd.getValueForKey_MapOfDistances(5);
     data +=
             "{'monitorId':'i_frontRight','measurements': [{'varId':'i_frontRightDistance','measures': [{'mTimeStamp': '"
-                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(i_frontRightDistance)
                     + "'}]}]},"
                     + "{'monitorId':'i_rear','measurements': [{'varId':'i_rearDistance','measures': [{'mTimeStamp': '"
-                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(i_rearDistance) + "'}]}]},"
                     + "{'monitorId':'i_rearRight','measurements': [{'varId':'i_rearRightDistance','measures': [{'mTimeStamp': '"
-                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(i_rearRightDistance)
                     + "'}]}]},"
                     + "{'monitorId':'u_frontCenter','measurements': [{'varId':'u_frontCenterDistance','measures': [{'mTimeStamp': '"
-                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(u_frontCenterDistance)
                     + "'}]}]},"
                     + "{'monitorId':'u_frontRight','measurements': [{'varId':'u_frontRightDistance','measures': [{'mTimeStamp': '"
-                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(u_frontRightDistance)
                     + "'}]}]},"
                     + "{'monitorId':'u_rearRight','measurements': [{'varId':'u_rearRightDistance','measures': [{'mTimeStamp': '"
-                    + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()
+                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(u_rearRightDistance)
                     + "'}]}]}"
                     + "]}";
