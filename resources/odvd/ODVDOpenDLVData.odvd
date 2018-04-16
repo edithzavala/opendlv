@@ -95,12 +95,6 @@ message opendlv.proxy.LedRequest [id = 169] {
   string data [id = 2];
 }
 
-message opendlv.sensation.Voice [id = 175] {
-  string type [id = 1];
-  uint32 size [id = 2];
-  string data [id = 3];
-}
-
 message opendlv.sensation.Geolocation [id = 176] {
   double latitude [id = 1];
   float latitudeConfidence [id = 2];
@@ -228,3 +222,24 @@ message opendlv.system.diagnostics.HealthStatus [id = 200] {
     map<string,string> status [id = 1];
 }
 
+message opendlv.proxy.V2vReading [id = 171] {
+  uint32 size [id = 1];
+  string data [id = 2];
+}
+
+message opendlv.proxy.V2vRequest [id = 172] {
+  uint32 size [id = 1];
+  string data [id = 2];
+}
+
+message opendlv.sensation.Voice [id = 175] {
+  string type [id = 1];
+  uint32 size [id = 2];
+  string data [id = 3];
+}
+
+//message opendlv.adaptation.MonitorAdaptation [id = 190] {
+	//uint32 vehicleId [id = 1];
+    //string monitorName [id = 2];
+    //string action [id = 3];
+//}

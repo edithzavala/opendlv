@@ -61,8 +61,10 @@ namespace adaptation {
   */
 KsamClient::KsamClient(int32_t const &a_argc, char **a_argv)
     : DataTriggeredConferenceClientModule(
-      a_argc, a_argv, "logic-adaptation-ksamclient")
+      a_argc, a_argv,
+                "adaptation-ksamclient")
     , m_initialized(false)
+    , m_v2vcam(false)
 //    , m_mtx()
 //    , m_debug()
 {
@@ -101,6 +103,11 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                   + "','monitors': [");
 	bool sendMessage = false;
 
+  if (a_c.getDataType() == opendlv::sensation::Voice::ID()) {
+    //check when it turns off
+    m_v2vcam = true;
+  }
+
 	if (a_c.getDataType() == odcore::data::image::SharedImage::ID()) {
 		odcore::data::image::SharedImage sharedImg =
 		        a_c.getData<odcore::data::image::SharedImage>();
@@ -128,26 +135,40 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
     double u_frontRightDistance = sbd.getValueForKey_MapOfDistances(4);
     double u_rearRightDistance = sbd.getValueForKey_MapOfDistances(5);
     data +=
-            "{'monitorId':'i_frontRight','measurements': [{'varId':'i_frontRightDistance','measures': [{'mTimeStamp': '"
+            "{'monitorId':'Infrared_FrontRight','measurements': [{'varId':'FrontRightDistance','measures': [{'mTimeStamp': '"
                     + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(i_frontRightDistance)
-                    + "'}]}]},"
-                    + "{'monitorId':'i_rear','measurements': [{'varId':'i_rearDistance','measures': [{'mTimeStamp': '"
-                    + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-                    + "','value':'" + std::to_string(i_rearDistance) + "'}]}]},"
-                    + "{'monitorId':'i_rearRight','measurements': [{'varId':'i_rearRightDistance','measures': [{'mTimeStamp': '"
+                    + "'}]}]},";
+    if (m_v2vcam) {
+      data +=
+              "{'monitorId':'V2V_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(i_rearDistance)
+                      + "'}]}]},";
+    } else {
+      data +=
+              "{'monitorId':'Infrared_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(i_rearDistance)
+                      + "'}]}]},";
+    }
+
+    data +=
+            "{'monitorId':'Infrared_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
                     + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(i_rearRightDistance)
                     + "'}]}]},"
-                    + "{'monitorId':'u_frontCenter','measurements': [{'varId':'u_frontCenterDistance','measures': [{'mTimeStamp': '"
+                    + "{'monitorId':'UltraSonic_FrontCenter','measurements': [{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
                     + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(u_frontCenterDistance)
                     + "'}]}]},"
-                    + "{'monitorId':'u_frontRight','measurements': [{'varId':'u_frontRightDistance','measures': [{'mTimeStamp': '"
+                    + "{'monitorId':'UltraSonic_FrontRight','measurements': [{'varId':'FrontRightDistance','measures': [{'mTimeStamp': '"
                     + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(u_frontRightDistance)
                     + "'}]}]},"
-                    + "{'monitorId':'u_rearRight','measurements': [{'varId':'u_rearRightDistance','measures': [{'mTimeStamp': '"
+                    + "{'monitorId':'UltraSonic_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
                     + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
                     + "','value':'" + std::to_string(u_rearRightDistance)
                     + "'}]}]}"
@@ -183,7 +204,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
 			std::cout << "Connection failed due to port and ip problems" << std::endl;
 		}
 
-		std::cout << data << std::endl;
+//		std::cout << data << std::endl;
 		if( write(socket_client, data.c_str(), strlen(data.c_str())) < 0)
 		{
 			std::cout << "Data send failed" << std::endl;

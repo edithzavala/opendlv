@@ -54,6 +54,7 @@ class KsamClient
   void setUp();
   void tearDown();
   bool m_initialized;
+    bool m_v2vcam;
 };
 
 }

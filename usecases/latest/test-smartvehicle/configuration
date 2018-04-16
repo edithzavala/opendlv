@@ -1,10 +1,4 @@
 ### CONFIGURATION GLOBAL
-##previous
-#global.buffer.memorySegmentSize = 2800000 # Size of a memory segment in bytes.
-#global.buffer.numberOfMemorySegments = 20  # Number of memory segments.
-#global.session.expectedModules = adaptation-ksamclient, knowledge-scene,perception-detectlane,core-tool-camera-replay, adaptation-ksamserver
-##
-
 global.car = Car1.objx
 global.scenario = file://Parking-boxes-1.scnx
 global.showGrid = 0
@@ -12,16 +6,21 @@ global.reference.WGS84.latitude = 57.70485804
 global.reference.WGS84.longitude = -11.93831921
 global.buffer.memorySegmentSize = 480000 # Size of a memory segment in bytes.
 global.buffer.numberOfMemorySegments = 50 # Number of memory segments.
-
-global.session.expectedModules = odsimirus, odsimirus:1, odsimvehicle, odsimvehicle:1, lanefollower, lanefollower:1, odcockpit, adaptation-ksamclient:3, adaptation-ksamserver:4, odsimcamera, odsimcamera:1
-
-#odsimcamera.debug = 0 # set to 0 to disable any windows and further output
+global.session.expectedModules = odsimirus, odsimirus:1, odsimvehicle, odsimvehicle:1, lanefollower, lanefollower:1, odcockpit, adaptation-ksamclient:3, adaptation-ksamserver:4, odsimcamera, odsimcamera:1, knowledge-v2vcam
 
 ### CONFIGURATION ODSUPERCOMPONENT
 odsupercomponent.pulseshift.shift = 10000 # (in microseconds)
 odsupercomponent.pulsetimeack.exclude = odcockpit
 odsupercomponent.pulsetimeack.timeout = 5000 # (in milliseconds)
 odsupercomponent.pulsetimeack.yield = 5000 # (in microseconds)
+
+### CONFIGURATION ODCOCKPIT
+odcockpit.plugins =
+#configurationviewer,healthstatusviewer,livefeed,logmessage,player,sessionviewer,sharedimageviewer,streetmapviewer # List of modules to show in odcockpit; leave blank to show all.
+odcockpit.directoriesForSharedLibaries = /opt,/lib # List of directories to search for libodvd*.so files.
+odcockpit.runtimeconfiguration.key1 = 0.1
+odcockpit.runtimeconfiguration.key2 = 1.2
+odcockpit.runtimeconfiguration.key3 = -3.2
 
 ### CONFIGURATION ODSIMIRUS
 odsimirus.numberOfSensors = 6                   # Number of configured sensors.
@@ -163,7 +162,7 @@ odsimvehicle.LinearBicycleModel.tauBrake=1.0
 odsimvehicle.LinearBicycleModel.KstaticBrake=100.0
 odsimvehicle.LinearBicycleModel.KdynamicBrake=60.0
 
-### CONFIGURATION ODSIMVEHICLE2
+### CONFIGURATION ODSIMVEHICLE_1
 odsimvehicle:1.posX = 0                     # Initial position X in cartesian coordinates.
 odsimvehicle:1.posY = 0                     # Initial position Y in cartesian coordinates.
 odsimvehicle:1.headingDEG = 90
@@ -187,19 +186,21 @@ odsimvehicle:1.LinearBicycleModel.KdynamicBrake=60.0
 
 ### CONFIGURATION CAMERA
 odsimcamera.id = 0
+
+### CONFIGURATION CAMERA_1
 odsimcamera:1.id = 1
 
 ### CONFIGURATION LANEFOLLOWER
 lanefollower.camera_id = 0 # select here the proper camera
 lanefollower.debug = 1 # set to 0 to disable any windows and further output
 
+### CONFIGURATION LANEFOLLOWER_1
 lanefollower:1.camera_id = 1 # select here the proper camera
 lanefollower:1.debug = 1 # set to 0 to disable any windows and further output
 
-### CONFIGURATION ODCOCKPIT
-odcockpit.plugins =
-#configurationviewer,healthstatusviewer,livefeed,logmessage,player,sessionviewer,sharedimageviewer,streetmapviewer # List of modules to show in odcockpit; leave blank to show all.
-odcockpit.directoriesForSharedLibaries = /opt,/lib # List of directories to search for libodvd*.so files.
-odcockpit.runtimeconfiguration.key1 = 0.1
-odcockpit.runtimeconfiguration.key2 = 1.2
-odcockpit.runtimeconfiguration.key3 = -3.2
+### CONFIGURATION V2VCAM
+knowledge-v2vcam.printOutbound = 1
+knowledge-v2vcam.printInbound = 1
+knowledge-v2vcam.record = 0
+knowledge-v2vcam.debug = 1
+knowledge-v2vcam.simulation = 1

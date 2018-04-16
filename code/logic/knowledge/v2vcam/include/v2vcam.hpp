@@ -29,6 +29,7 @@
 #include "opendavinci/odcore/data/Container.h"
 
 #include "odvdopendlvdata/GeneratedHeaders_ODVDOpenDLVData.h"
+#include "Voice.h"
 
 namespace opendlv {
 namespace logic {
@@ -50,7 +51,7 @@ class V2vCam
 
   void ReadDynamicState(opendlv::model::DynamicState const &);
   void ReadGeolocation(opendlv::sensation::Geolocation const &);
-  void ReadVoice(opendlv::sensation::Voice const &);
+    void ReadVoice(Voice const &);
   void ReadInsight(opendlv::knowledge::Insight const &);
   void SendWGS84Coordinate();
 
@@ -89,7 +90,7 @@ class V2vCam
 
   unsigned char const m_messageId;
   int32_t m_stationId;
-  int32_t m_generationDeltaTime; 
+  int32_t m_generationDeltaTime;
   unsigned char m_containerMask;
   int32_t m_stationType;
   double m_latitude;
@@ -109,6 +110,8 @@ class V2vCam
   double m_yawRateValue;
   double m_yawRateConfidence;
   int32_t m_vehicleRole;
+    bool m_simulation;
+    bool m_active;
 };
 
 }

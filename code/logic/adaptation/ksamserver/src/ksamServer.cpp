@@ -27,12 +27,15 @@
 #include <netinet/in.h> //contains constants and structures needed for internet domain addresses
 #include <iostream>
 #include <thread>
+#include <list>
 
 #include "opendavinci/odcore/wrapper/SharedMemoryFactory.h"
 #include "opendavinci/odcore/wrapper/SharedMemory.h"
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
-#include "odvdopendlvdata/GeneratedHeaders_ODVDOpenDLVData.h"
+#include "opendavinci/odcore/data/Container.h"
+//#include "odvdopendlvdata/GeneratedHeaders_ODVDOpenDLVData.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
+#include "MonitorAdaptation.h"
 
 #include "../include/ksamServer.hpp"
 
@@ -40,14 +43,15 @@ namespace opendlv {
 namespace logic {
 namespace adaptation {
 
-
+using namespace odcore::data;
 /**
   * Constructor.
   *
   * @param a_argc Number of command line arguments.
   * @param a_argv Command line arguments.
   */
-KsamServer::KsamServer(const int32_t &argc, char **argv): TimeTriggeredConferenceClientModule(argc, argv, "logic-adaptation-ksamserver")
+KsamServer::KsamServer(const int32_t &argc, char **argv) :
+        TimeTriggeredConferenceClientModule(argc, argv, "adaptation-ksamserver")
 {
 }
 
@@ -81,6 +85,13 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
 	char buffer[1025];
     int socketServer, socketClient, c;
     struct sockaddr_in server, client;
+  char * recAdapt;
+  char * vehicleId;
+  char * monitorsToAdd;
+  char * monitorsToRemove;
+  char * monitorIdToAdapt;
+  uint32_t vehIdInt;
+  MonitorAdaptation mAdapt;
 
     if((socketServer = socket(AF_INET, SOCK_STREAM, 0))<0){
     	std::cout << "Could not create socket" << std::endl;
@@ -104,8 +115,53 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
 //    	std::cout << "Client connected" << std::endl;
 
 		read(socketClient, buffer,1024);
-		std::cout << "Adaptation request: " << buffer << std::endl;
+    recAdapt = strdup(buffer);
 
+    if (strsep(&recAdapt, ",:") != NULL) { //vehicleId tag
+      vehicleId = strsep(&recAdapt, ",:");
+      vehIdInt = (uint32_t) atoi(vehicleId);
+      std::cout << "OpenDLV-Adapt vehicle with id: " << std::to_string(vehIdInt)
+              << std::endl;
+    }
+
+    if (strsep(&recAdapt, ",:") != NULL) { //monitorsToAddTag
+    monitorsToAdd = strsep(&recAdapt, ",:");
+      while ((monitorIdToAdapt = strsep(&monitorsToAdd, ",")) != NULL) {
+        std::cout << "OpenDLV-Monitor to add: " << monitorIdToAdapt
+                << std::endl;
+        mAdapt.setVehicleId(vehIdInt);
+        mAdapt.setMonitorName(monitorIdToAdapt);
+        mAdapt.setAction("add");
+        Container data = Container(mAdapt);
+//        data.setSenderStamp(vehIdInt);
+        getConference().send(data);
+    }
+
+    }
+
+    if (strsep(&recAdapt, ",:") != NULL) { //monitorsToRemoveTag
+    monitorsToRemove = strsep(&recAdapt, ",:");
+      while ((monitorIdToAdapt = strsep(&monitorsToRemove, ",")) != NULL) {
+        std::cout << "OpenDLV-Monitors to remove: " << monitorIdToAdapt
+              << std::endl;
+        mAdapt.setVehicleId(vehIdInt);
+        mAdapt.setMonitorName(monitorIdToAdapt);
+        mAdapt.setAction("remove");
+        Container data = Container(mAdapt);
+//        data.setSenderStamp(vehIdInt);
+        getConference().send(data);
+      }
+    }
+    //AdaptationId:MONITORFAULT_openDlvMonitorv0,MonitorsToAdd:[v2vRear]
+    /*
+     *message opendlv.adaptation.MonitorAdaptation [id = 190] {
+     uint32 vehicleId [id = 1];
+     string monitorName [id = 2];
+     string action [id = 3];
+     }
+     */
+    std::cout << "OpenDLV-Monitor adapt message: " << mAdapt.getMonitorName()
+            << std::endl;
 		close(socketClient);
 	//        sleep(1);
     }
