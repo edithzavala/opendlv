@@ -65,3 +65,16 @@ services:
         network_mode: host
         ipc: host
         command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vcam --cid=${CID}"
+
+ # microservice for knowledge-v2vcam
+    knowledge-v2vcam1:
+        build: .
+        depends_on:
+            - odsupercomponent
+        working_dir: /opt/opendlv.data/
+        volumes:
+            - /tmp/.X11-unix:/tmp/.X11-unix
+            - .:/opt/opendlv.data
+        network_mode: host
+        ipc: host
+        command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vcam --cid=${CID} --id=1"

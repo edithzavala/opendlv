@@ -27,9 +27,11 @@
 
 #include "opendavinci/odcore/base/module/TimeTriggeredConferenceClientModule.h"
 #include "opendavinci/odcore/data/Container.h"
+#include "opendlv/data/environment/EgoState.h"
 
 #include "odvdopendlvdata/GeneratedHeaders_ODVDOpenDLVData.h"
 #include "Voice.h"
+#include "V2vRequest.h"
 
 namespace opendlv {
 namespace logic {
@@ -49,6 +51,8 @@ class V2vCam
   void tearDown();
   odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
 
+    void ReadEgoState(opendlv::data::environment::EgoState const &);
+    void ReadV2vRequest(V2vRequest const &);
   void ReadDynamicState(opendlv::model::DynamicState const &);
   void ReadGeolocation(opendlv::sensation::Geolocation const &);
     void ReadVoice(Voice const &);

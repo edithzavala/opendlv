@@ -31,6 +31,7 @@
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
 #include "opendlv/data/environment/WGS84Coordinate.h"
 #include "opendlv/data/environment/Point3.h"
+#include "opendlv/data/environment/EgoState.h"
 
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
@@ -65,7 +66,7 @@ V2vCam::V2vCam(int32_t const &a_argc, char **a_argv)
     , m_debug(false)
     , m_receivedGeolocation(false)
     , m_messageId(2)
-    , m_stationId(0)
+    , m_stationId()
     , m_generationDeltaTime(0)
     , m_containerMask(0)
     , m_stationType(0)
@@ -114,6 +115,8 @@ void V2vCam::setUp()
           << m_printInbound << " Record: " << m_record << " Debug: " << m_debug
           << " Simulation: " << m_simulation
       << std::endl;
+
+  m_stationId = getIdentifier();
   /**
    if (m_record) {
    struct stat st;
@@ -186,7 +189,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vCam::body()
 
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
-    if (m_active) {
+    if (m_active && m_receivedGeolocation) {
     std::shared_ptr<Buffer> outBuffer(new Buffer());
     // Reverser for big and little endian specification of V2V.
     outBuffer->Reversed();
@@ -320,7 +323,14 @@ void V2vCam::nextContainer(odcore::data::Container &a_c)
 //  std::cout << "Receive message of type " << a_c.getDataType() << " from "
 //          << a_c.getSenderStamp() << std::endl;
   // TODO: Change how Identity works (remove the +400 hack).
-  if (a_c.getDataType() == (opendlv::knowledge::Insight::ID() + 400)) {
+  if (a_c.getDataType() == opendlv::data::environment::EgoState::ID()) {
+    opendlv::data::environment::EgoState
+    ego = a_c.getData<
+            opendlv::data::environment::EgoState>();
+    if (a_c.getSenderStamp() == getIdentifier()) {
+      ReadEgoState(ego);
+    }
+  } else if (a_c.getDataType() == (opendlv::knowledge::Insight::ID() + 400)) {
     opendlv::knowledge::Insight insight = a_c.getData<
             opendlv::knowledge::Insight>();
     ReadInsight(insight);
@@ -333,9 +343,12 @@ void V2vCam::nextContainer(odcore::data::Container &a_c)
         a_c.getData<opendlv::model::DynamicState>();
     ReadDynamicState(dynamicState);
   } else if (a_c.getDataType() == V2vRequest::ID()) {
-    std::cout << "Receive request ------------" << a_c.getSenderStamp()
-            << std::endl;
-    m_active = true;
+    if (a_c.getSenderStamp() == getIdentifier()) {
+      std::cout << "Request data/stop to other vehicles" << std::endl;
+    } else {
+      V2vRequest vr = a_c.getData<V2vRequest>();
+      ReadV2vRequest(vr);
+    }
   }
 //  else if (a_c.getDataType() == opendlv::sensation::Voice::ID()) {
 //    opendlv::sensation::Voice voice = a_c.getData<opendlv::sensation::Voice>();
@@ -346,6 +359,24 @@ void V2vCam::nextContainer(odcore::data::Container &a_c)
 //            << a_c.getSenderStamp() << std::endl;
 //    ReadVoice(voice);
 //  }
+}
+
+void V2vCam::ReadEgoState(opendlv::data::environment::EgoState const &ego) {
+  m_latitude = ego.getPosition().getY();
+  m_longitude = ego.getPosition().getX();
+  m_receivedGeolocation = true;
+  if (m_debug) {
+//    std::cout << "Receive egostate" << std::endl;
+  }
+}
+
+void V2vCam::ReadV2vRequest(V2vRequest const &request) {
+  bool b;
+  istringstream(request.getData()) >> b;
+  m_active = b;
+  if (m_debug) {
+    std::cout << "Receive request to send cam message?:" << b << std::endl;
+  }
 }
 
 void V2vCam::ReadInsight(opendlv::knowledge::Insight const &a_insight)

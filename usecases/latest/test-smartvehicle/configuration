@@ -1,12 +1,13 @@
 ### CONFIGURATION GLOBAL
 global.car = Car1.objx
-global.scenario = file://Parking-boxes-1.scnx
+global.scenario = file://Parking-boxes-2.scnx
 global.showGrid = 0
 global.reference.WGS84.latitude = 57.70485804
 global.reference.WGS84.longitude = -11.93831921
 global.buffer.memorySegmentSize = 480000 # Size of a memory segment in bytes.
 global.buffer.numberOfMemorySegments = 50 # Number of memory segments.
-global.session.expectedModules = odsimirus, odsimirus:1, odsimvehicle, odsimvehicle:1, lanefollower, lanefollower:1, odcockpit, adaptation-ksamclient:3, adaptation-ksamserver:4, odsimcamera, odsimcamera:1, knowledge-v2vcam
+global.session.expectedModules = odsimirus, odsimirus:1, odsimvehicle, odsimvehicle:1, lanefollower, lanefollower:1, odcockpit, adaptation-ksamclient:3, adaptation-ksamserver:4, odsimcamera, odsimcamera:1, knowledge-v2vcam, knowledge-v2vcam:1
+
 
 ### CONFIGURATION ODSUPERCOMPONENT
 odsupercomponent.pulseshift.shift = 10000 # (in microseconds)
@@ -142,7 +143,7 @@ odsimirus:1.sensor5.showFOV = 1 # Show FOV in monitor.
 
 ### CONFIGURATION ODSIMVEHICLE
 odsimvehicle.posX = 0                     # Initial position X in cartesian coordinates.
-odsimvehicle.posY = 15                     # Initial position Y in cartesian coordinates.
+odsimvehicle.posY = 8                     # Initial position Y in cartesian coordinates.
 odsimvehicle.headingDEG = 90
 odsimvehicle.model=LinearBicycleModelNew  # Which motion model to be used: LinearBicycleModelNew or LinearBicycleModel (for CaroloCup 2013!).
 odsimvehicle.LinearBicycleModelNew.withSpeedController=1          # iff 1: use the VehicleControl.m_speed field; otherwise, ignore m_speed and use VehicleControl.m_acceleration field
@@ -204,3 +205,10 @@ knowledge-v2vcam.printInbound = 1
 knowledge-v2vcam.record = 0
 knowledge-v2vcam.debug = 1
 knowledge-v2vcam.simulation = 1
+
+### CONFIGURATION V2VCAM_1
+knowledge-v2vcam:1.printOutbound = 1
+knowledge-v2vcam:1.printInbound = 1
+knowledge-v2vcam:1.record = 0
+knowledge-v2vcam:1.debug = 1
+knowledge-v2vcam:1.simulation = 1
