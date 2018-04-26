@@ -41,6 +41,7 @@
 #include "automotivedata/GeneratedHeaders_AutomotiveData.h"
 #include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
 
+#include "V2vRequest.h"
 #include "../include/ksamclient.hpp"
 
 namespace opendlv {
@@ -65,6 +66,8 @@ KsamClient::KsamClient(int32_t const &a_argc, char **a_argv)
                 "adaptation-ksamclient")
     , m_initialized(false)
     , m_v2vcam(false)
+    , m_v2vcamRequest(
+                false)
 //    , m_mtx()
 //    , m_debug()
 {
@@ -96,9 +99,16 @@ void KsamClient::tearDown()
  */
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
+
+  if (a_c.getDataType() == V2vRequest::ID()
+          && a_c.getSenderStamp() == 0) {
+      V2vRequest vr = a_c.getData<V2vRequest>();
+    istringstream(vr.getData()) >> m_v2vcamRequest;
+
+  }
+
   if (a_c.getDataType() == opendlv::sensation::Voice::ID()
           && a_c.getSenderStamp() == 1) { //remove this hack for sending data to ksam of both vehicles
-    //check when it turns off
     m_v2vcam = true;
   }
 
@@ -145,24 +155,22 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                               a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'" + std::to_string(i_frontRightDistance)
                       + "'}]}]},";
-      if (m_v2vcam) {
+      if (m_v2vcam && m_v2vcamRequest) {
+        double v2v = sbd.getValueForKey_MapOfDistances(6);
         data +=
                 "{'monitorId':'V2V_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(i_rearDistance)
+                        + "','value':'" + std::to_string(v2v)
                         + "'}]}]},";
-      } else {
-        data +=
-                "{'monitorId':'Infrared_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
+      }
+      data +=
+              "{'monitorId':'Infrared_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
                         + "','value':'" + std::to_string(i_rearDistance)
-                        + "'}]}]},";
-      }
-
-      data +=
-              "{'monitorId':'Infrared_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
+                      + "'}]}]},"
+                      + "{'monitorId':'Infrared_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'" + std::to_string(i_rearRightDistance)

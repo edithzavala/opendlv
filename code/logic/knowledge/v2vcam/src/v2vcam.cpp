@@ -279,6 +279,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vCam::body()
       Voice nextMessage("cam", bytesString.size(),
             bytesString);
     odcore::data::Container c(nextMessage);
+      std::cout << "Send message type:" << std::to_string(c.getDataType())
+              << std::endl;
     getConference().send(c);
 
 //    if(m_record) {
@@ -675,6 +677,9 @@ int32_t V2vCam::GetStationType() const
 
 int32_t V2vCam::GetLatitude() const
 {
+  if (m_simulation) {
+    return m_latitude;
+  } else {
   int32_t scale = std::pow(10,7);
   double val = m_latitude*scale;
   if(val < -900000000 || val > 900000000){
@@ -683,10 +688,14 @@ int32_t V2vCam::GetLatitude() const
   else {
     return static_cast<int32_t>(std::round(val));
   }
+  }
 }
 
 int32_t V2vCam::GetLongitude() const
 {
+  if (m_simulation) {
+    return m_longitude;
+  } else {
   int32_t scale = std::pow(10,7);
   double val = m_longitude*scale;
   if(val< -1800000000 || val > 1800000000){
@@ -694,6 +703,7 @@ int32_t V2vCam::GetLongitude() const
   }
   else{
     return static_cast<int32_t>(std::round(val));
+  }
   }
 }
 

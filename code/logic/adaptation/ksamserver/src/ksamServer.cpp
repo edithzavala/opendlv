@@ -160,8 +160,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
      string action [id = 3];
      }
      */
-    std::cout << "OpenDLV-Monitor adapt message: " << mAdapt.getMonitorName()
-            << std::endl;
+//    std::cout << "OpenDLV-Monitor adapt message: " << mAdapt.getMonitorName()
+//            << std::endl;
 		close(socketClient);
 	//        sleep(1);
     }
