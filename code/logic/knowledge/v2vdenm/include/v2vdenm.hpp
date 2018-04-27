@@ -49,9 +49,10 @@ class V2vDenm
   // std::ofstream m_sendLog;
   std::ofstream m_receiveLog;
   std::time_t m_timeType2004;
+    bool m_simulation;
+    std::string m_role;
 
-  
-  uint64_t GenerateGenerationTime() const;
+    uint64_t GenerateGenerationTime() const;
 
   // unsigned char const m_messageId = 1;
   // int32_t m_stationId = 0;
@@ -59,9 +60,9 @@ class V2vDenm
   // unsigned char m_containerMask = 160;
   // unsigned char m_managementMask = 248;
   // unsigned char m_situationMask = 8;
-  // unsigned char m_alacarteMask = 168;  
-  // int32_t m_detectionTime = 0; 
-  // int32_t m_referenceTime = 1; 
+    // unsigned char m_alacarteMask = 168;
+    // int32_t m_detectionTime = 0;
+    // int32_t m_referenceTime = 1;
   // int32_t m_termination = 0;
   // int32_t m_latitude = 900000001;
   // int32_t m_longitude = 1800000001;

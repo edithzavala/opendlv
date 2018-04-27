@@ -87,11 +87,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
     struct sockaddr_in server, client;
   char * recAdapt;
   char * vehicleId;
-  char * monitorsToAdd;
-  char * monitorsToRemove;
-  char * monitorIdToAdapt;
+
   uint32_t vehIdInt;
-  MonitorAdaptation mAdapt;
 
     if((socketServer = socket(AF_INET, SOCK_STREAM, 0))<0){
     	std::cout << "Could not create socket" << std::endl;
@@ -116,19 +113,23 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
 
 		read(socketClient, buffer,1024);
     recAdapt = strdup(buffer);
+    std::cout << "Receive message: " << buffer << std::endl;
 
-    if (strsep(&recAdapt, ",:") != NULL) { //vehicleId tag
-      vehicleId = strsep(&recAdapt, ",:");
+    if (strsep(&recAdapt, ";:") != NULL) { //vehicleId tag
+      vehicleId = strsep(&recAdapt, ";:");
       vehIdInt = (uint32_t) atoi(vehicleId);
       std::cout << "OpenDLV-Adapt vehicle with id: " << std::to_string(vehIdInt)
               << std::endl;
     }
 
-    if (strsep(&recAdapt, ",:") != NULL) { //monitorsToAddTag
-    monitorsToAdd = strsep(&recAdapt, ",:");
+    if (strsep(&recAdapt, ";:") != NULL) { //monitorsToAddTag
+      char * monitorsToAdd = strsep(&recAdapt, ";:");
+      std::cout << "List of monitors to add: " << monitorsToAdd << std::endl;
+      char * monitorIdToAdapt;
       while ((monitorIdToAdapt = strsep(&monitorsToAdd, ",")) != NULL) {
         std::cout << "OpenDLV-Monitor to add: " << monitorIdToAdapt
                 << std::endl;
+        MonitorAdaptation mAdapt;
         mAdapt.setVehicleId(vehIdInt);
         mAdapt.setMonitorName(monitorIdToAdapt);
         mAdapt.setAction("add");
@@ -139,11 +140,15 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
 
     }
 
-    if (strsep(&recAdapt, ",:") != NULL) { //monitorsToRemoveTag
-    monitorsToRemove = strsep(&recAdapt, ",:");
+    if (strsep(&recAdapt, ";:") != NULL) { //monitorsToRemoveTag
+      char * monitorsToRemove = strsep(&recAdapt, ";:");
+      std::cout << "List of monitors to remove: " << monitorsToRemove
+              << std::endl;
+      char * monitorIdToAdapt;
       while ((monitorIdToAdapt = strsep(&monitorsToRemove, ",")) != NULL) {
         std::cout << "OpenDLV-Monitors to remove: " << monitorIdToAdapt
               << std::endl;
+        MonitorAdaptation mAdapt;
         mAdapt.setVehicleId(vehIdInt);
         mAdapt.setMonitorName(monitorIdToAdapt);
         mAdapt.setAction("remove");

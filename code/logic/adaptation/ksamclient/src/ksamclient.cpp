@@ -43,6 +43,7 @@
 
 #include "V2vRequest.h"
 #include "../include/ksamclient.hpp"
+#include "Voice.h"
 
 namespace opendlv {
 namespace logic {
@@ -100,28 +101,47 @@ void KsamClient::tearDown()
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
 
-  if (a_c.getDataType() == V2vRequest::ID()
-          && a_c.getSenderStamp() == 0) {
-      V2vRequest vr = a_c.getData<V2vRequest>();
-    istringstream(vr.getData()) >> m_v2vcamRequest;
+  bool sendMessage = false;
+  std::string data;
+//  if (a_c.getDataType() == V2vRequest::ID()
+//          && a_c.getSenderStamp() == 0) {
+//      V2vRequest vr = a_c.getData<V2vRequest>();
+//    istringstream(vr.getData()) >> m_v2vcamRequest;
+//
+//  }
 
-  }
-
-  if (a_c.getDataType() == opendlv::sensation::Voice::ID()
+  if (a_c.getDataType() == Voice::ID()
           && a_c.getSenderStamp() == 1) { //remove this hack for sending data to ksam of both vehicles
-    m_v2vcam = true;
-  }
+    Voice voice = a_c.getData<Voice>();
 
-  if (a_c.getSenderStamp() == 0) { //remove this hack for sending data to ksam of both vehicles
-    std::string data(
+    if (voice.getType() == "cam") {
+    m_v2vcam = true;
+    } else if (voice.getType() == "denm") {
+      //Denm message received from v1 to report by v0 to ksam
+      data +=
+              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+                      + std::to_string(
+                              a_c.getReceivedTimeStamp().toMicroseconds())
+                      + "','monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'CRASH'}]}]}]}";
+        sendMessage = true;
+    }
+
+  } else if (a_c.getSenderStamp() == 0) { //remove this hack for sending data to ksam of both vehicles
+    data +=
             "{'systemId' : 'openDlvMonitorv"
                     + std::to_string(a_c.getSenderStamp()) + "','timeStamp':'"
                     + std::to_string(
                             a_c.getReceivedTimeStamp().toMicroseconds())
-                    + "','monitors': [");
-    bool sendMessage = false;
+            + "','monitors': [";
 
-    if (a_c.getDataType() == odcore::data::image::SharedImage::ID()) {
+      if (a_c.getDataType() == V2vRequest::ID()) {
+        V2vRequest vr = a_c.getData<V2vRequest>();
+        istringstream(vr.getData()) >> m_v2vcamRequest;
+
+      } else if (a_c.getDataType() == odcore::data::image::SharedImage::ID()) {
       odcore::data::image::SharedImage sharedImg = a_c.getData<
               odcore::data::image::SharedImage>();
       data +=
@@ -132,19 +152,13 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                       + "'}]}]}]}";
       //		  	std::cout << data << std::endl;
       sendMessage = true;
-    }
-
-    if (a_c.getDataType() == automotive::miniature::SensorBoardData::ID()) {
+      } else if (a_c.getDataType()
+              == automotive::miniature::SensorBoardData::ID()) {
       automotive::miniature::SensorBoardData sbd = a_c.getData<
               automotive::miniature::SensorBoardData>();
 
       double i_frontRightDistance = sbd.getValueForKey_MapOfDistances(0);
       double i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
-      //    if (a_c.getSenderStamp() == 0) {
-      //      i_rearDistance = -2;
-      //    } else {
-      //      i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
-      //    }
       double i_rearRightDistance = sbd.getValueForKey_MapOfDistances(2);
       double u_frontCenterDistance = sbd.getValueForKey_MapOfDistances(3);
       double u_frontRightDistance = sbd.getValueForKey_MapOfDistances(4);
@@ -158,7 +172,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
       if (m_v2vcam && m_v2vcamRequest) {
         double v2v = sbd.getValueForKey_MapOfDistances(6);
         data +=
-                "{'monitorId':'V2V_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
+                  "{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
                         + "','value':'" + std::to_string(v2v)
@@ -201,9 +215,10 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
     //		std::cout << data << std::endl;
     //		sendMessage  = true;
     //	}
+    }
 
     if (sendMessage) {
-      //		std::cout << data << std::endl;
+      //        std::cout << data << std::endl;
       int socket_client = socket(AF_INET, SOCK_STREAM, 0);
 
       struct sockaddr_in server;
@@ -221,13 +236,14 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                 << std::endl;
       }
 
-      //		std::cout << data << std::endl;
+      //        std::cout << data << std::endl;
       if (write(socket_client, data.c_str(), strlen(data.c_str())) < 0) {
         std::cout << "Data send failed" << std::endl;
       }
 
       close(socket_client);
-    }
+
+//      sendMessage = false;
   }
 
 }
