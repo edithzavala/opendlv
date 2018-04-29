@@ -144,7 +144,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vDenm::body()
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
     if (m_simulation) {
     i++;
-      if (i == 30 && m_role == "witness") {
+      if (i == 100 && m_role == "witness") {
         //send CRASH!
 
         std::shared_ptr<Buffer> outBuffer(new Buffer());

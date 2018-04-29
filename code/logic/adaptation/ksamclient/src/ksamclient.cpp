@@ -206,15 +206,31 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                       + "'}]}]}" + "]}";
       //		std::cout << data << std::endl;
       sendMessage = true;
+    } else if (a_c.getDataType() == automotive::VehicleData::ID()) {
+      automotive::VehicleData vd = a_c.getData<automotive::VehicleData>();
+
+      double speed = vd.getSpeed();
+      if (speed < 0) {
+        speed = 0;
+      }
+
+//      vd.getPosition();
+//      vd.getVelocity();
+//      vd.getHeading();
+//      vd.getSpeed();
+//      vd.getV_log();
+//      vd.getV_batt();
+//      vd.getTemp();
+//      vd.getRelTraveledPath();
+
+      data +=
+              "{'monitorId':'imuodsimcvehicle','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(speed) + "'}]}]}]}";
+      //            std::cout << data << std::endl;
+      sendMessage = true;
     }
-    //	if (a_c.getDataType() == automotive::VehicleData::ID()) {
-    //		automotive::VehicleData vd = a_c.getData<automotive::VehicleData> ();
-    //
-    //	  	const double speed = vd.getSpeed();
-    //		data += "'simvehicle','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '" + a_c.getSampleTimeStamp().getYYYYMMDD_HHMMSSms()+ "','value':'" + std::to_string(speed) + "'}]}]}]}";
-    //		std::cout << data << std::endl;
-    //		sendMessage  = true;
-    //	}
     }
 
     if (sendMessage) {
