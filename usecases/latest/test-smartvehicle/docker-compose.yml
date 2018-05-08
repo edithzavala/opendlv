@@ -52,24 +52,25 @@ services:
         network_mode: host
         ipc: host
         command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
- # microservice for knowledge-v2vdenm
-    knowledge-v2vdenm0:
-        build: .
-        working_dir: /opt/opendlv.data/
-        volumes:
-            - /tmp/.X11-unix:/tmp/.X11-unix
-            - .:/opt/opendlv.data
-        network_mode: host
-        ipc: host
-        command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111"
 
  # microservice for knowledge-v2vdenm
-    knowledge-v2vdenm1:
-        build: .
-        working_dir: /opt/opendlv.data/
-        volumes:
-            - /tmp/.X11-unix:/tmp/.X11-unix
-            - .:/opt/opendlv.data
-        network_mode: host
-        ipc: host
-        command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111 --id=1"
+ #   knowledge-v2vdenm0:
+ #      build: .
+ #       working_dir: /opt/opendlv.data/
+ #      volumes:
+ #           - /tmp/.X11-unix:/tmp/.X11-unix
+ #          - .:/opt/opendlv.data
+ #       network_mode: host
+ #       ipc: host
+ #       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111"
+
+ # microservice for knowledge-v2vdenm
+ #   knowledge-v2vdenm1:
+ #       build: .
+ #       working_dir: /opt/opendlv.data/
+ #       volumes:
+ #           - /tmp/.X11-unix:/tmp/.X11-unix
+ #           - .:/opt/opendlv.data
+ #       network_mode: host
+ #       ipc: host
+ #       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111 --id=1"

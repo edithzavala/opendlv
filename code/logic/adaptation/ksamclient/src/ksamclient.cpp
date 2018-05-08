@@ -69,6 +69,7 @@ KsamClient::KsamClient(int32_t const &a_argc, char **a_argv)
     , m_v2vcam(false)
     , m_v2vcamRequest(
                 false)
+    , m_laneFollower(false)
 //    , m_mtx()
 //    , m_debug()
 {
@@ -122,7 +123,10 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
               "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
                       + std::to_string(
                               a_c.getReceivedTimeStamp().toMicroseconds())
-                      + "','monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
+                      + "',"
+                      + "'context': [{'laneFollower': '"
+                      + std::to_string(m_laneFollower)
+                      + "'}],'monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'CRASH'}]}]}]}";
@@ -130,12 +134,22 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
     }
 
   } else if (a_c.getSenderStamp() == 0) { //remove this hack for sending data to ksam of both vehicles
+    if (a_c.getDataType() == automotive::VehicleControl::ID()) {
+      automotive::VehicleControl vc = a_c.getData<automotive::VehicleControl>();
+      if (vc.getSpeed() > 0) {
+        m_laneFollower = true;
+      } else {
+        m_laneFollower = false;
+      }
+    }
+
     data +=
             "{'systemId' : 'openDlvMonitorv"
                     + std::to_string(a_c.getSenderStamp()) + "','timeStamp':'"
                     + std::to_string(
-                            a_c.getReceivedTimeStamp().toMicroseconds())
-            + "','monitors': [";
+                            a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+            + "'context': [{'laneFollower': '" + std::to_string(m_laneFollower)
+            + "'}],'monitors': [";
 
       if (a_c.getDataType() == V2vRequest::ID()) {
         V2vRequest vr = a_c.getData<V2vRequest>();
@@ -203,21 +217,22 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'" + std::to_string(u_rearRightDistance)
-                      + "'}]}]}" + "]}";
+                      + "'}]}]}]}";
       //		std::cout << data << std::endl;
       sendMessage = true;
     } else if (a_c.getDataType() == automotive::VehicleData::ID()) {
       automotive::VehicleData vd = a_c.getData<automotive::VehicleData>();
 
+      // Assume vehicle is never in reverse
       double speed = vd.getSpeed();
       if (speed < 0) {
         speed = 0;
       }
 
-//      vd.getPosition();
+      double x = vd.getPosition().getP()[0];
+      double y = vd.getPosition().getP()[1];
 //      vd.getVelocity();
 //      vd.getHeading();
-//      vd.getSpeed();
 //      vd.getV_log();
 //      vd.getV_batt();
 //      vd.getTemp();
@@ -227,7 +242,15 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
               "{'monitorId':'imuodsimcvehicle','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(speed) + "'}]}]}]}";
+                      + "','value':'" + std::to_string(speed)
+                      + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(x)
+                      + "'}]},{'varId':'latitude','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(y) + "'}]}]}]}";
       //            std::cout << data << std::endl;
       sendMessage = true;
     }

@@ -56,6 +56,7 @@ class KsamClient
   bool m_initialized;
     bool m_v2vcam;
     bool m_v2vcamRequest;
+    bool m_laneFollower;
 };
 
 }
