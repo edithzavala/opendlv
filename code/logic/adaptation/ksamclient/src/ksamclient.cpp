@@ -124,9 +124,12 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                       + std::to_string(
                               a_c.getReceivedTimeStamp().toMicroseconds())
                       + "',"
-                      + "'context': [{'laneFollower': '"
-                      + std::to_string(m_laneFollower)
-                      + "'}],'monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
+                      + "'context': [{'services': [";
+      if (m_laneFollower) {
+        data += "'laneFollower'";
+      }
+      data +=
+              "]}],'monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'CRASH'}]}]}]}";
@@ -148,8 +151,11 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
                     + std::to_string(a_c.getSenderStamp()) + "','timeStamp':'"
                     + std::to_string(
                             a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
-            + "'context': [{'laneFollower': '" + std::to_string(m_laneFollower)
-            + "'}],'monitors': [";
+            + "'context': [{'services': [";
+    if (m_laneFollower) {
+      data += "'laneFollower'";
+    }
+    data += "]}],'monitors': [";
 
       if (a_c.getDataType() == V2vRequest::ID()) {
         V2vRequest vr = a_c.getData<V2vRequest>();
