@@ -40,6 +40,7 @@
 #include "opendavinci/odcore/data/TimeStamp.h"
 #include "automotivedata/GeneratedHeaders_AutomotiveData.h"
 #include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
+#include "opendlv/data/environment/WGS84Coordinate.h"
 
 #include "V2vRequest.h"
 #include "../include/ksamclient.hpp"
@@ -70,6 +71,7 @@ KsamClient::KsamClient(int32_t const &a_argc, char **a_argv)
     , m_v2vcamRequest(
                 false)
     , m_laneFollower(false)
+    , m_simulation(false)
 //    , m_mtx()
 //    , m_debug()
 {
@@ -85,7 +87,7 @@ KsamClient::~KsamClient()
 void KsamClient::setUp()
 {
   odcore::base::KeyValueConfiguration kv = getKeyValueConfiguration();
-//  kv.getValue<int32_t>("logic-adaptation-ksamclient.ok");
+  m_simulation = kv.getValue<bool>("adaptation-ksamclient.simulation");
   m_initialized = true;
 //  m_debug = (kv.getValue<int32_t>("logic-adaptation-ksam.debug") == 1);
 }
@@ -101,9 +103,59 @@ void KsamClient::tearDown()
  */
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
-
+//  std::cout << "----" << std::to_string(a_c.getDataType()) << std::endl;
   bool sendMessage = false;
   std::string data;
+  if (!m_simulation) {
+
+    if (a_c.getDataType() == opendlv::proxy::PointCloudReading::ID()) {
+      opendlv::proxy::PointCloudReading pc = a_c.getData<
+              opendlv::proxy::PointCloudReading>();
+      std::cout << "StartAzimuth: " << std::to_string(pc.getStartAzimuth())
+              << std::endl;
+      std::cout << "EndAzimuth: " << std::to_string(pc.getEndAzimuth())
+              << std::endl;
+      data +=
+              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+                      + std::to_string(
+                              a_c.getReceivedTimeStamp().toMicroseconds())
+                      + "',"
+                      + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(pc.getStartAzimuth())
+                      + "'}]},{'varId':'endAzimuth','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(pc.getEndAzimuth())
+                      + "'}]}]}]}";
+      sendMessage = true;
+    } else if (a_c.getDataType()
+            == opendlv::data::environment::WGS84Coordinate::ID()) {
+    opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
+            opendlv::data::environment::WGS84Coordinate>();
+    std::cout << "Latitude: " << std::to_string(gps.getLatitude()) << std::endl;
+      std::cout << "Longitude: " << std::to_string(gps.getLongitude())
+              << std::endl;
+
+      data +=
+              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+                      + std::to_string(
+                              a_c.getReceivedTimeStamp().toMicroseconds())
+                      + "',"
+                      + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(gps.getLatitude())
+                      + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'" + std::to_string(gps.getLongitude())
+                      + "'}]}]}]}";
+      sendMessage = true;
+
+  }
+  } else {
 //  if (a_c.getDataType() == V2vRequest::ID()
 //          && a_c.getSenderStamp() == 0) {
 //      V2vRequest vr = a_c.getData<V2vRequest>();
@@ -261,6 +313,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
       sendMessage = true;
     }
     }
+  }
 
     if (sendMessage) {
       //        std::cout << data << std::endl;

@@ -1,0 +1,14 @@
+version: '2'
+# Please note that docker-compose does not prescribe a startup order
+
+services:
+    #odrecorder.
+    odrecorderh264:
+        image: ${IMAGE}
+        volumes:
+            - ~/recordings:/opt/recordings
+        user: root
+        network_mode: host
+        ipc: host
+        working_dir: "/opt/recordings"
+        command: "/opt/od4/bin/odrecorderh264 --cid=${CID}"

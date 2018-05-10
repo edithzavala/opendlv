@@ -1,0 +1,15 @@
+version: '2'
+services:
+    #odcockpit
+    odcockpit:
+        image: ${IMAGE}
+        network_mode: host
+        environment:
+        - DISPLAY=:0
+        volumes:
+        - /tmp/.X11-unix:/tmp/.X11-unix
+        - ~/recordings:/opt/recordings
+        - .:/opt/opendlv.data
+        ipc: host
+        user: root
+        command: /opt/od4/bin/odcockpit --cid=${CID}
