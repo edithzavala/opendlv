@@ -24,7 +24,7 @@ services:
         build: .
         network_mode: "host"
         volumes:
-        - .:/opt/opendlv.data
+            - .:/opt/opendlv.data
         command: "/opt/od4/bin/odsupercomponent --cid=${CID} --id=5 --verbose=1 --configuration=/opt/opendlv.data/configuration"
 
  # microservice for adaptation-ksamclient
@@ -39,38 +39,38 @@ services:
         network_mode: host
         ipc: host
         command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamclient --id=3 --cid=${CID}"
+#
+# # microservice for adaptation-ksamserver
+#    adaptation-ksamserver:
+#        build: .
+#        depends_on:
+#            - odsupercomponent
+#        working_dir: /opt/opendlv.data/
+#        volumes:
+#            - /tmp/.X11-unix:/tmp/.X11-unix
+#            - .:/opt/opendlv.data
+#        network_mode: host
+#        ipc: host
+#        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
 
- # microservice for adaptation-ksamserver
- #   adaptation-ksamserver:
- #       build: .
- #       depends_on:
- #          - odsupercomponent
- #       working_dir: /opt/opendlv.data/
- #       volumes:
- #           - /tmp/.X11-unix:/tmp/.X11-unix
- #           - .:/opt/opendlv.data
- #       network_mode: host
- #       ipc: host
- #       command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
+ # microservice for knowledge-v2vdenm -- use for the CRASH use case
+#    knowledge-v2vdenm0:
+#       build: .
+#       working_dir: /opt/opendlv.data/
+#       volumes:
+#           - /tmp/.X11-unix:/tmp/.X11-unix
+#           - .:/opt/opendlv.data
+#       network_mode: host
+#       ipc: host
+#       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111"
 
- # microservice for knowledge-v2vdenm
- #   knowledge-v2vdenm0:
- #      build: .
- #       working_dir: /opt/opendlv.data/
- #      volumes:
- #           - /tmp/.X11-unix:/tmp/.X11-unix
- #          - .:/opt/opendlv.data
- #       network_mode: host
- #       ipc: host
- #       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111"
-
- # microservice for knowledge-v2vdenm
- #   knowledge-v2vdenm1:
- #       build: .
- #       working_dir: /opt/opendlv.data/
- #       volumes:
- #           - /tmp/.X11-unix:/tmp/.X11-unix
- #           - .:/opt/opendlv.data
- #       network_mode: host
- #       ipc: host
- #       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111 --id=1"
+ # microservice for knowledge-v2vdenm -- use for the CRASH use case
+#    knowledge-v2vdenm1:
+#       build: .
+#       working_dir: /opt/opendlv.data/
+#       volumes:
+#           - /tmp/.X11-unix:/tmp/.X11-unix
+#           - .:/opt/opendlv.data
+#       network_mode: host
+#       ipc: host
+#       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=111 --id=1"

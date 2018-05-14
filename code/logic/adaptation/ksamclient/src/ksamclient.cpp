@@ -103,7 +103,7 @@ void KsamClient::tearDown()
  */
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
-//  std::cout << "----" << std::to_string(a_c.getDataType()) << std::endl;
+  std::cout << "----" << std::to_string(a_c.getDataType()) << std::endl;
   bool sendMessage = false;
   std::string data;
   if (!m_simulation) {
@@ -111,10 +111,10 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
     if (a_c.getDataType() == opendlv::proxy::PointCloudReading::ID()) {
       opendlv::proxy::PointCloudReading pc = a_c.getData<
               opendlv::proxy::PointCloudReading>();
-      std::cout << "StartAzimuth: " << std::to_string(pc.getStartAzimuth())
-              << std::endl;
-      std::cout << "EndAzimuth: " << std::to_string(pc.getEndAzimuth())
-              << std::endl;
+//      std::cout << "StartAzimuth: " << std::to_string(pc.getStartAzimuth())
+//              << std::endl;
+//      std::cout << "EndAzimuth: " << std::to_string(pc.getEndAzimuth())
+//              << std::endl;
       data +=
               "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
                       + std::to_string(
@@ -134,9 +134,9 @@ void KsamClient::nextContainer(odcore::data::Container &a_c)
             == opendlv::data::environment::WGS84Coordinate::ID()) {
     opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
             opendlv::data::environment::WGS84Coordinate>();
-    std::cout << "Latitude: " << std::to_string(gps.getLatitude()) << std::endl;
-      std::cout << "Longitude: " << std::to_string(gps.getLongitude())
-              << std::endl;
+//    std::cout << "Latitude: " << std::to_string(gps.getLatitude()) << std::endl;
+//      std::cout << "Longitude: " << std::to_string(gps.getLongitude())
+//              << std::endl;
 
       data +=
               "{'systemId' : 'openDlvMonitorv0','timeStamp':'"

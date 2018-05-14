@@ -49,7 +49,7 @@ proxy-velodyne32.calibration = HDL-32E.xml
 
 
 proxy-xc90.devicenode = can0        # SocketCAN device.
-proxy-xc90.debug = 1                # Enable debug output to console.
+proxy-xc90.debug = 0                # Enable debug output to console.
 proxy-xc90.record_gcm = 0           # 1 = Dump generic CAN messages (no broadcasting).
 proxy-xc90.record_mapped_data = 0   # 1 = Record mapped containers.
 proxy-xc90.record_asc = 0           # 1 = Dump ASC data from CAN.
