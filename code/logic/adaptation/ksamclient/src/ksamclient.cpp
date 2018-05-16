@@ -103,7 +103,7 @@ void KsamClient::tearDown()
  */
 void KsamClient::nextContainer(odcore::data::Container &a_c)
 {
-  std::cout << "----" << std::to_string(a_c.getDataType()) << std::endl;
+//  std::cout << "----" << std::to_string(a_c.getDataType()) << std::endl;
   bool sendMessage = false;
   std::string data;
   if (!m_simulation) {
