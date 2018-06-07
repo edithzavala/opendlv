@@ -246,6 +246,54 @@ message opendlv.sensation.Voice [id = 175] {
   string data [id = 3];
 }
 
+message opendlv.device.gps.pos.TimeDistance [id = 532] {
+/*
+    enum TimeType {
+        TIMETYPE_POS                    = 0,
+        TIMETYPE_GPS                    = 1,
+        TIMETYPE_UTC                    = 2,
+        TIMETYPE_USER                   = 3,
+    };
+
+    enum DistanceType {
+        DISTANCETYPE_NA                 = 0,
+        DISTANCETYPE_POS                = 1,
+        DISTANCETYPE_DMI                = 2,
+    };
+*/
+    double time1                        [id = 1];
+    double time2                        [id = 2];
+    double distanceTag                  [id = 3];
+/*
+    TimeType time1Type                  [id = 4];
+    TimeType time2Type                  [id = 5];
+    DistanceType distanceType           [id = 6];
+*/
+}
+
+message opendlv.device.gps.pos.Grp1Data [id = 533] {
+    double lat                          [id = 2];
+    double lon                          [id = 3];
+    double alt                          [id = 4];
+    float vel_north                     [id = 5];
+    float vel_east                      [id = 6];
+    float vel_down                      [id = 7];
+    double roll                         [id = 8];
+    double pitch                        [id = 9];
+    double heading                      [id = 10];
+    double wander                       [id = 11];
+    float track                         [id = 12];
+    float speed                         [id = 13];
+    float arate_lon                     [id = 14];
+    float arate_trans                   [id = 15];
+    float arate_down                    [id = 16];
+    float accel_lon                     [id = 17];
+    float accel_trans                   [id = 18];
+    float accel_down                    [id = 19];
+    uint8 alignment                     [id = 20];
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 23];
+}
+
 //message opendlv.adaptation.MonitorAdaptation [id = 190] {
 	//uint32 vehicleId [id = 1];
     //string monitorName [id = 2];

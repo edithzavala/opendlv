@@ -44,6 +44,7 @@
 #include "V2vRequest.h"
 #include "../include/ksamclient.hpp"
 #include "Voice.h"
+#include "buffer.hpp"
 
 namespace opendlv {
 namespace logic {
@@ -87,7 +88,7 @@ void KsamClient::tearDown() {
 }
 
 void KsamClient::nextContainer(odcore::data::Container &a_c) {
-
+  std::cout << "Type " << a_c.getDataType() << std::endl;
   bool sendMessage = false;
   std::string data;
 
@@ -117,6 +118,25 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
       /**--------------VELODYNE DATA ---------------------**/
       opendlv::proxy::PointCloudReading pc = a_c.getData<
               opendlv::proxy::PointCloudReading>();
+      int8_t layers = pc.getEntriesPerAzimuth();
+//      int8_t bitsForInt = pc.getNumberOfBitsForIntensity();
+
+      if (layers == 9) {
+//        std::string distances = pc.getDistances();
+
+        std::string distances = pc.getDistances();
+        std::vector<unsigned char> distancesData(distances.begin(),
+                distances.end());
+        std::shared_ptr<const Buffer> buffer(new Buffer(distancesData));
+        std::shared_ptr < Buffer::Iterator > inIterator = buffer->GetIterator();
+        //Long and little endian reverser
+//        inIterator->ItReversed();
+
+//        std::cout << distances << std::endl;
+//        std::cout << std::to_string(distances.length()) << std::endl; //39042
+//        std::cout << std::to_string(inIterator->ReadDouble()) << " - "
+//                << std::to_string(inIterator->ReadDouble()) << std::endl; //0.0,0.0
+        //std::cout << std::to_string(bitsForInt) << std::endl; //0
       data +=
               "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
                       + std::to_string(
@@ -130,11 +150,33 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'" + std::to_string(pc.getEndAzimuth())
-                      + "'}]}]}]}";
+                        + "'}]},{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'"
+                        + std::to_string(inIterator->ReadShort())
+                        + "'}]},{'varId':'rightdistance','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'"
+                        + std::to_string(inIterator->ReadShort())
+                        + "'}]},{'varId':'leftdistance','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'"
+                        + std::to_string(inIterator->ReadShort())
+                        + "'}]},{'varId':'reardistance','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'"
+                        + std::to_string(inIterator->ReadShort())
+                        + "'}]}]}]}";
       sendMessage = true;
+      }
+
     } else if (a_c.getDataType()
             == opendlv::data::environment::WGS84Coordinate::ID()) {
-      /**--------------APPLANIX DATA---------------------**/
+      /**--------------APPLANIX GPS DATA---------------------**/
       opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
               opendlv::data::environment::WGS84Coordinate>();
       data +=
@@ -150,6 +192,24 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'" + std::to_string(gps.getLongitude())
+                      + "'}]}]}]}";
+      sendMessage = true;
+
+    } else if (a_c.getDataType() == opendlv::device::gps::pos::Grp1Data::ID()) {
+      /**--------------APPLANIX IMU DATA---------------------**/
+      opendlv::device::gps::pos::Grp1Data grp1 = a_c.getData<
+              opendlv::device::gps::pos::Grp1Data>();
+      //speed is translated into km/h (speed*3600/1000)
+      data +=
+              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+                      + std::to_string(
+                              a_c.getReceivedTimeStamp().toMicroseconds())
+                      + "',"
+                      + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+                      + std::to_string(
+                              a_c.getSampleTimeStamp().toMicroseconds())
+                      + "','value':'"
+                      + std::to_string(grp1.getSpeed() * 3600 / 1000)
                       + "'}]}]}]}";
       sendMessage = true;
 
@@ -304,7 +364,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
   }
 
   if (sendMessage) {
-    //        std::cout << data << std::endl;
+//    std::cout << data << std::endl;
     int socket_client = socket(AF_INET, SOCK_STREAM, 0);
 
     struct sockaddr_in server;
@@ -328,7 +388,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
 
     close(socket_client);
 
-//      sendMessage = false;
+    sendMessage = false;
   }
 
 }

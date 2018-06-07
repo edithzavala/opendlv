@@ -39,19 +39,19 @@ services:
         network_mode: host
         ipc: host
         command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamclient --id=3 --cid=${CID}"
-#
-# # microservice for adaptation-ksamserver
-#    adaptation-ksamserver:
-#        build: .
-#        depends_on:
-#            - odsupercomponent
-#        working_dir: /opt/opendlv.data/
-#        volumes:
-#            - /tmp/.X11-unix:/tmp/.X11-unix
-#            - .:/opt/opendlv.data
-#        network_mode: host
-#        ipc: host
-#        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
+
+ # microservice for adaptation-ksamserver
+    adaptation-ksamserver:
+        build: .
+        depends_on:
+            - odsupercomponent
+        working_dir: /opt/opendlv.data/
+        volumes:
+            - /tmp/.X11-unix:/tmp/.X11-unix
+            - .:/opt/opendlv.data
+        network_mode: host
+        ipc: host
+        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
 
  # microservice for knowledge-v2vdenm -- use for the CRASH use case
 #    knowledge-v2vdenm0:
