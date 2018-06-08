@@ -21,6 +21,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdio.h>
+#include <math.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -45,6 +46,8 @@
 #include "../include/ksamclient.hpp"
 #include "Voice.h"
 #include "buffer.hpp"
+
+#define PI 3.14159265
 
 namespace opendlv {
 namespace logic {
@@ -88,10 +91,24 @@ void KsamClient::tearDown() {
 }
 
 void KsamClient::nextContainer(odcore::data::Container &a_c) {
-  std::cout << "Type " << a_c.getDataType() << std::endl;
+//  std::cout << "Type " << a_c.getDataType() << std::endl;
   bool sendMessage = false;
   std::string data;
 
+  //Miniature data//////////////////////////////////////////////////////////////
+  if (a_c.getDataType() == opendlv::proxy::VoltageReading::ID()) {
+    opendlv::proxy::VoltageReading vol = a_c.getData<
+            opendlv::proxy::VoltageReading>();
+    std::cout << "Voltage: " << std::to_string(vol.getVoltage()) << std::endl;
+    sendMessage = true;
+  } else if (a_c.getDataType() == opendlv::proxy::DistanceReading::ID()) {
+    opendlv::proxy::DistanceReading dist = a_c.getData<
+            opendlv::proxy::DistanceReading>();
+    std::cout << "Distance: " << std::to_string(dist.getDistance())
+            << std::endl;
+    sendMessage = true;
+  }
+  ///////////////////////////////////////////////////////////////////////////////
   if (!m_simulation) {
     if (a_c.getDataType() == automotive::VehicleData::ID()) {
       /**--------------CAN DATA---------------------**/
@@ -118,60 +135,122 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
       /**--------------VELODYNE DATA ---------------------**/
       opendlv::proxy::PointCloudReading pc = a_c.getData<
               opendlv::proxy::PointCloudReading>();
-      int8_t layers = pc.getEntriesPerAzimuth();
-//      int8_t bitsForInt = pc.getNumberOfBitsForIntensity();
+      int8_t numberOfLayersInMessage = pc.getEntriesPerAzimuth();
 
-      if (layers == 9) {
-//        std::string distances = pc.getDistances();
-
+      if (numberOfLayersInMessage == 9) {
         std::string distances = pc.getDistances();
+        double endAzimuth = pc.getEndAzimuth();
+        double startAzimuth = pc.getStartAzimuth();
+        //      int8_t numberOfBitsForIntensity = pc.getNumberOfBitsForIntensity(); // 0
+        double frontalDistance = 0.0;
+        double rearDistance = 0.0;
+        double rightDistance = 0.0;
+        double leftDistance = 0.0;
+
         std::vector<unsigned char> distancesData(distances.begin(),
                 distances.end());
         std::shared_ptr<const Buffer> buffer(new Buffer(distancesData));
-        std::shared_ptr < Buffer::Iterator > inIterator = buffer->GetIterator();
+        std::shared_ptr<Buffer::Iterator> inIterator = buffer->GetIterator();
         //Long and little endian reverser
-//        inIterator->ItReversed();
+        inIterator->ItReversed();
+
+        int numberOfPoints = buffer->GetSize() / 2;
+        int numberOfPointsPerLayer = numberOfPoints / numberOfLayersInMessage;
+        double azimuthIncrement = (endAzimuth - startAzimuth)
+                / numberOfPointsPerLayer;
+
+        std::cout << "Start azimuth " << std::to_string(startAzimuth)
+                << std::endl;
+        std::cout << "End azimuth " << std::to_string(endAzimuth) << std::endl;
+
+        std::cout << "Number of points " << numberOfPoints << std::endl;
+        std::cout << "Number of points per layer " << numberOfPointsPerLayer
+                << std::endl;
+        std::cout << "Azimuth increment " << azimuthIncrement << std::endl;
+
+        double azimuth = startAzimuth;
+
+        double approxNinetyDegrees = startAzimuth
+                + ((numberOfPointsPerLayer / 4) * azimuthIncrement);
+        double approxOneHundredEightyDegrees = startAzimuth
+                + ((numberOfPointsPerLayer / 2) * azimuthIncrement);
+        double approxTwoHundredSeventyDegrees = startAzimuth
+                + ((numberOfPointsPerLayer / 4) * 3 * azimuthIncrement);
+
+        for (int i = 0; i < numberOfPoints; i++) {
+          short distanceTemp = inIterator->ReadShort();
+          if (i > numberOfPointsPerLayer * 3
+                  && i <= numberOfPointsPerLayer * 4) {
+//            double verticalAngleLayer14 = -12.0;
+//            double xyDistance = distanceTemp
+//                    * cos(verticalAngleLayer14 * PI / 180.0);
+//            double x = xyDistance * sin(azimuth * PI / 180.0);
+//            double y = xyDistance * cos(azimuth * PI / 180.0);
+//            double z = distanceTemp * sin(verticalAngleLayer14 * PI / 180.0);
+
+            if (azimuth <= startAzimuth) {
+              frontalDistance = distanceTemp;
+//              std::cout << "Distance front: " << frontalDistance << " azimuth: "
+//                      << azimuth << std::endl;
+            } else if (azimuth <= (approxNinetyDegrees + azimuthIncrement)
+                    && azimuth >= approxNinetyDegrees) {
+              rightDistance = distanceTemp;
+//              std::cout << "Distance right: " << rightDistance << " azimuth: "
+//                      << azimuth << std::endl;
+            } else if (azimuth
+                    <= (approxOneHundredEightyDegrees + azimuthIncrement)
+                    && azimuth >= approxOneHundredEightyDegrees) {
+              rearDistance = distanceTemp;
+//              std::cout << "Distance rear: " << rearDistance << " azimuth: "
+//                      << azimuth << std::endl;
+            } else if (azimuth
+                    <= (approxTwoHundredSeventyDegrees + azimuthIncrement)
+                    && azimuth >= approxTwoHundredSeventyDegrees) {
+              leftDistance = distanceTemp;
+//              std::cout << "Distance left: " << leftDistance << " azimuth: "
+//                      << azimuth << std::endl;
+            }
+            azimuth += azimuthIncrement;
+          }
+
+        }
 
 //        std::cout << distances << std::endl;
 //        std::cout << std::to_string(distances.length()) << std::endl; //39042
 //        std::cout << std::to_string(inIterator->ReadDouble()) << " - "
 //                << std::to_string(inIterator->ReadDouble()) << std::endl; //0.0,0.0
         //std::cout << std::to_string(bitsForInt) << std::endl; //0
-      data +=
-              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                      + std::to_string(
-                              a_c.getReceivedTimeStamp().toMicroseconds())
-                      + "',"
-                      + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
-                      + std::to_string(
-                              a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(pc.getStartAzimuth())
-                      + "'}]},{'varId':'endAzimuth','measures': [{'mTimeStamp': '"
-                      + std::to_string(
-                              a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(pc.getEndAzimuth())
+        data +=
+                "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+                        + std::to_string(
+                                a_c.getReceivedTimeStamp().toMicroseconds())
+                        + "',"
+                        + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'" + std::to_string(startAzimuth)
+                        + "'}]},{'varId':'endAzimuth','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'" + std::to_string(endAzimuth)
                         + "'}]},{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'"
-                        + std::to_string(inIterator->ReadShort())
+                        + "','value':'" + std::to_string(frontalDistance)
                         + "'}]},{'varId':'rightdistance','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'"
-                        + std::to_string(inIterator->ReadShort())
+                        + "','value':'" + std::to_string(rightDistance)
                         + "'}]},{'varId':'leftdistance','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'"
-                        + std::to_string(inIterator->ReadShort())
+                        + "','value':'" + std::to_string(leftDistance)
                         + "'}]},{'varId':'reardistance','measures': [{'mTimeStamp': '"
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'"
-                        + std::to_string(inIterator->ReadShort())
+                        + "','value':'" + std::to_string(rearDistance)
                         + "'}]}]}]}";
-      sendMessage = true;
+        sendMessage = true;
       }
 
     } else if (a_c.getDataType()
@@ -364,7 +443,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
   }
 
   if (sendMessage) {
-//    std::cout << data << std::endl;
+    std::cout << data << std::endl;
     int socket_client = socket(AF_INET, SOCK_STREAM, 0);
 
     struct sockaddr_in server;
