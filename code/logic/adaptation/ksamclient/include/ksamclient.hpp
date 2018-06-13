@@ -44,9 +44,9 @@ namespace adaptation {
 class KsamClient
 : public odcore::base::module::DataTriggeredConferenceClientModule {
  public:
-  KsamClient(int32_t const &, char **);
-  KsamClient(KsamClient const &) = delete;
-  KsamClient &operator=(KsamClient const &) = delete;
+    KsamClient(const int32_t &, char **);
+    KsamClient(const KsamClient &) = delete;
+    KsamClient &operator=(const KsamClient &) = delete;
   virtual ~KsamClient();
   virtual void nextContainer(odcore::data::Container &);
 
@@ -58,6 +58,8 @@ class KsamClient
     bool m_v2vcamRequest;
     bool m_laneFollower;
     bool m_simulation;
+    bool m_cameraActive;
+    bool m_gpsActive;
 };
 
 }

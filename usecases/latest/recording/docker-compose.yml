@@ -46,6 +46,22 @@ services:
     #  network_mode: host
     #  ipc: host
     #  command: "/opt/opendlv.core/bin/opendlv-core-system-proxy-camera-axis --cid=${CID} --freq=20 --id=0"   
+
+    # Micro-service for proxy-camera.
+    proxy-camera:
+        build: .
+        group_add:
+            - video
+              #        depends_on:
+              #- odsupercomponent
+        cap_add:
+            - SYS_NICE
+        devices:
+            - "/dev/video0:/dev/video0"
+        user: root
+        network_mode: host
+        ipc: host
+        command: "/opt/opendlv.core/bin/opendlv-core-system-proxy-camera --cid=${CID} --freq=20 --realtime=20"
        
     proxy-xc90:
        image: ${IMAGE}

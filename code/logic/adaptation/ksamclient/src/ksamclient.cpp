@@ -46,6 +46,7 @@
 #include "../include/ksamclient.hpp"
 #include "Voice.h"
 #include "buffer.hpp"
+#include "MonitorAdaptation.h"
 
 #define PI 3.14159265
 
@@ -68,7 +69,8 @@ namespace adaptation {
 KsamClient::KsamClient(const int32_t &a_argc, char **a_argv) :
         DataTriggeredConferenceClientModule(a_argc, a_argv,
                 "adaptation-ksamclient"), m_initialized(false), m_v2vcam(false), m_v2vcamRequest(
-                false), m_laneFollower(false), m_simulation(false)
+                false), m_laneFollower(false), m_simulation(false), m_cameraActive(
+                true), m_gpsActive(true)
 //    , m_mtx()
 //    , m_debug()
 {
@@ -110,7 +112,48 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
   }
   ///////////////////////////////////////////////////////////////////////////////
   if (!m_simulation) {
-    if (a_c.getDataType() == automotive::VehicleData::ID()) {
+    if (a_c.getDataType() == MonitorAdaptation::ID()) {
+
+      MonitorAdaptation ma = a_c.getData<MonitorAdaptation>();
+      //if adaptation is for the camera
+      if (ma.getMonitorName().compare("axiscamera") == 0) {
+        if (ma.getAction().compare("add") == 0) {
+          m_cameraActive = true;
+        } else if (ma.getAction().compare("remove") == 0) {
+          m_cameraActive = false;
+        }
+      } else if (ma.getMonitorName().compare("applanixGps") == 0) {
+        if (ma.getAction().compare("add") == 0) {
+          m_gpsActive = true;
+        } else if (ma.getAction().compare("remove") == 0) {
+          m_gpsActive = false;
+        }
+      }
+    }
+
+    if (a_c.getDataType() == opendlv::proxy::ImageReadingShared::ID()) {
+      /**--------------AXIS CAMERA DATA---------------------**/
+      opendlv::proxy::ImageReadingShared is = a_c.getData<
+              opendlv::proxy::ImageReadingShared>();
+      if (m_cameraActive) {
+        uint32_t imgSize = is.getSize();
+
+        data +=
+                "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+                        + std::to_string(
+                                a_c.getReceivedTimeStamp().toMicroseconds())
+                        + "',"
+                        + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'axiscamera','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'" + std::to_string(0)
+                        + "'}]},{'varId':'imgSize','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'" + std::to_string(imgSize) + "'}]}]}]}";
+        sendMessage = true;
+      }
+    } else if (a_c.getDataType() == automotive::VehicleData::ID()) {
       /**--------------CAN DATA---------------------**/
       automotive::VehicleData vd = a_c.getData<automotive::VehicleData>();
 
@@ -258,6 +301,12 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
       /**--------------APPLANIX GPS DATA---------------------**/
       opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
               opendlv::data::environment::WGS84Coordinate>();
+      double lat = 0.0;
+      double lon = 0.0;
+      if (m_gpsActive) {
+        lat = gps.getLatitude();
+        lon = gps.getLongitude();
+      }
       data +=
               "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
                       + std::to_string(
@@ -266,12 +315,11 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                       + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(gps.getLatitude())
+                      + "','value':'" + std::to_string(lat)
                       + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(gps.getLongitude())
-                      + "'}]}]}]}";
+                      + "','value':'" + std::to_string(lon) + "'}]}]}]}";
       sendMessage = true;
 
     } else if (a_c.getDataType() == opendlv::device::gps::pos::Grp1Data::ID()) {
@@ -279,6 +327,10 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
       opendlv::device::gps::pos::Grp1Data grp1 = a_c.getData<
               opendlv::device::gps::pos::Grp1Data>();
       //speed is translated into km/h (speed*3600/1000)
+      float speed = 0.0;
+      if (m_gpsActive) {
+        speed = grp1.getSpeed() * 3600 / 1000;
+      }
       data +=
               "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
                       + std::to_string(
@@ -287,10 +339,28 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                       + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
                       + std::to_string(
                               a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'"
-                      + std::to_string(grp1.getSpeed() * 3600 / 1000)
-                      + "'}]}]}]}";
+                      + "','value':'" + std::to_string(speed) + "'}]}]}]}";
       sendMessage = true;
+
+    } else if (a_c.getDataType() == Voice::ID() && a_c.getSenderStamp() == 1) {
+      /**--------------V2VCAM DATA FROM EXTERNAL SYSTEMS---------------------**/
+      Voice voice = a_c.getData<Voice>();
+      if (voice.getType() == "cam") {
+        data +=
+                "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+                        + std::to_string(
+                                a_c.getReceivedTimeStamp().toMicroseconds())
+                        + "',"
+                        + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'" + std::to_string(0)
+                        + "'}]},{'varId':'trafficFactor','measures': [{'mTimeStamp': '"
+                        + std::to_string(
+                                a_c.getSampleTimeStamp().toMicroseconds())
+                        + "','value':'" + std::to_string(3) + "'}]}]}]}";
+        sendMessage = true;
+      }
 
     }
   } else {
@@ -319,6 +389,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
 
     } else if (a_c.getSenderStamp() == 0) {
       /**--------------SENSOR DATA FROM INTERNAL SYSTEMS---------------------**/
+
       if (a_c.getDataType() == automotive::VehicleControl::ID()) {
         /**--------------SELF-DRIVING/LANEFOLLOWER DATA---------------------**/
         automotive::VehicleControl vc =
@@ -334,6 +405,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
               + std::to_string(a_c.getSenderStamp()) + "','timeStamp':'"
               + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
               + "'," + "'context': [{'services': [";
+
       if (m_laneFollower) {
         data += "'laneFollower'";
       }
@@ -443,7 +515,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
   }
 
   if (sendMessage) {
-    std::cout << data << std::endl;
+//    std::cout << data << std::endl;
     int socket_client = socket(AF_INET, SOCK_STREAM, 0);
 
     struct sockaddr_in server;

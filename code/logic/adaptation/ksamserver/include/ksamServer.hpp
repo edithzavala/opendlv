@@ -44,9 +44,9 @@ namespace adaptation {
 
 class KsamServer :public odcore::base::module::TimeTriggeredConferenceClientModule {
 public:
- KsamServer(int32_t const &, char **);
- KsamServer(KsamServer const &) = delete;
- KsamServer &operator=(KsamServer const &) = delete;
+    KsamServer(const int32_t &, char **);
+    KsamServer(const KsamServer &) = delete;
+    KsamServer &operator=(const KsamServer &) = delete;
  virtual ~KsamServer();
 
  virtual void nextContainer(odcore::data::Container &c);
@@ -56,6 +56,7 @@ private:
  virtual void setUp();
  virtual void tearDown();
  void runServer();
+    bool m_simulation;
 };
 
 }

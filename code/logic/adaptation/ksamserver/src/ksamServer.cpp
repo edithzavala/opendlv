@@ -37,6 +37,7 @@
 #include "opendavinci/odcore/data/TimeStamp.h"
 #include "MonitorAdaptation.h"
 
+#include "V2vRequest.h"
 #include "../include/ksamServer.hpp"
 
 namespace opendlv {
@@ -45,75 +46,78 @@ namespace adaptation {
 
 using namespace odcore::data;
 /**
-  * Constructor.
-  *
-  * @param a_argc Number of command line arguments.
-  * @param a_argv Command line arguments.
-  */
+ * Constructor.
+ *
+ * @param a_argc Number of command line arguments.
+ * @param a_argv Command line arguments.
+ */
 KsamServer::KsamServer(const int32_t &argc, char **argv) :
-        TimeTriggeredConferenceClientModule(argc, argv, "adaptation-ksamserver")
-{
+        TimeTriggeredConferenceClientModule(argc, argv,
+                "adaptation-ksamserver"), m_simulation(false) {
 }
 
-KsamServer::~KsamServer()
-{
+KsamServer::~KsamServer() {
 }
 
-void KsamServer::setUp()
-{
+void KsamServer::setUp() {
+  odcore::base::KeyValueConfiguration kv = getKeyValueConfiguration();
+  m_simulation = kv.getValue<bool>("adaptation-ksamserver.simulation");
 }
 
-void KsamServer::tearDown()
-{
+void KsamServer::tearDown() {
 }
 
 void KsamServer::nextContainer(odcore::data::Container &c) {
- c.getDataType();
+  c.getDataType();
 }
 
-odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
-{
-    while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
-    	std::thread t1(&KsamServer::runServer,this);
-    	t1.join();
-     }
+odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body() {
+  while (getModuleStateAndWaitForRemainingTimeInTimeslice()
+          == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
+    std::thread t1(&KsamServer::runServer, this);
+    t1.join();
+  }
 
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
 }
 
-[[noreturn]] void KsamServer::runServer(){
-	char buffer[1025];
-    int socketServer, socketClient, c;
-    struct sockaddr_in server, client;
+[[noreturn]] void KsamServer::runServer() {
+  char buffer[1025];
+  int socketServer, socketClient, c;
+  struct sockaddr_in server, client;
   char * recAdapt;
   char * vehicleId;
 
   uint32_t vehIdInt;
 
-    if((socketServer = socket(AF_INET, SOCK_STREAM, 0))<0){
-    	std::cout << "Could not create socket" << std::endl;
-    }
+  if ((socketServer = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    std::cout << "Could not create socket" << std::endl;
+  }
 
-    server.sin_family = AF_INET;
-    server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons(8082);
+  server.sin_family = AF_INET;
+  server.sin_addr.s_addr = INADDR_ANY;
+  server.sin_port = htons(8082);
 
-    if((bind(socketServer, (struct sockaddr*)&server , sizeof(server)))<0){
-    	std::cout << "Bind failed" << std::endl;
-    }
+  if ((bind(socketServer, (struct sockaddr*) &server, sizeof(server))) < 0) {
+    std::cout << "Bind failed" << std::endl;
+  }
 
-    listen(socketServer , 5);
+  listen(socketServer, 5);
 
-    std::cout << "Server (opendlv) up" << std::endl;
-    c = sizeof(struct sockaddr_in);
+  std::cout << "Server (opendlv) up" << std::endl;
+  c = sizeof(struct sockaddr_in);
 
-    while(1){
-    	socketClient = accept(socketServer, (struct sockaddr*)&client, (socklen_t*)&c);
+  while (1) {
+    socketClient = accept(socketServer, (struct sockaddr*) &client,
+            (socklen_t*) &c);
 //    	std::cout << "Client connected" << std::endl;
 
-		read(socketClient, buffer,1024);
+    read(socketClient, buffer, 1024);
     recAdapt = strdup(buffer);
     std::cout << "Receive message: " << buffer << std::endl;
+    std::string v2vAdapt("");
+//    std::string cameraAdapt("");
+//    std::string gpsAdapt("");
 
     if (strsep(&recAdapt, ";:") != NULL) { //vehicleId tag
       vehicleId = strsep(&recAdapt, ";:");
@@ -136,7 +140,16 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
         Container data = Container(mAdapt);
 //        data.setSenderStamp(vehIdInt);
         getConference().send(data);
-    }
+        std::string monId(monitorIdToAdapt);
+        if (monId.compare("V2VCam_FrontCenter") == 0) {
+          v2vAdapt = "add";
+        }
+//        else if (monitorIdToAdapt.compare("axiscamera") != 0) {
+//          cameraAdapt = "add";
+//        } else if (monitorIdToAdapt.compare("applanixGps") != 0) {
+//          gpsAdapt = "add";
+//        }
+      }
 
     }
 
@@ -147,7 +160,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
       char * monitorIdToAdapt;
       while ((monitorIdToAdapt = strsep(&monitorsToRemove, ",")) != NULL) {
         std::cout << "OpenDLV-Monitors to remove: " << monitorIdToAdapt
-              << std::endl;
+                << std::endl;
         MonitorAdaptation mAdapt;
         mAdapt.setVehicleId(vehIdInt);
         mAdapt.setMonitorName(monitorIdToAdapt);
@@ -155,8 +168,46 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
         Container data = Container(mAdapt);
 //        data.setSenderStamp(vehIdInt);
         getConference().send(data);
+        std::string monId(monitorIdToAdapt);
+        if (monId.compare("V2VCam_FrontCenter") == 0) {
+          v2vAdapt = "remove";
+        }
+//        else if (monitorIdToAdapt.compare("axiscamera") != 0) {
+//          cameraAdapt = "remove";
+//        } else if (monitorIdToAdapt.compare("applanixGps") != 0) {
+//          gpsAdapt = "remove";
+//        }
       }
     }
+
+    if (!m_simulation) {
+      if (v2vAdapt.compare("add") == 0) {
+        std::string request("1");
+        V2vRequest nextMessage(request.size(), request);
+        odcore::data::Container cReq(nextMessage);
+        getConference().send(cReq);
+
+      } else if (v2vAdapt.compare("remove") == 0) {
+        std::string request("0");
+        V2vRequest nextMessage(request.size(), request);
+        odcore::data::Container cReq(nextMessage);
+        getConference().send(cReq);
+      }
+
+//      if (cameraAdapt.compare("add") != 0) {
+//
+//      } else if (cameraAdapt.compare("remove") != 0) {
+//
+//      }
+//
+//      if (gpsAdapt.compare("add") != 0) {
+//
+//      } else if (gpsAdapt.compare("remove") != 0) {
+//
+//      }
+
+    }
+
     //AdaptationId:MONITORFAULT_openDlvMonitorv0,MonitorsToAdd:[v2vRear]
     /*
      *message opendlv.adaptation.MonitorAdaptation [id = 190] {
@@ -167,9 +218,9 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body()
      */
 //    std::cout << "OpenDLV-Monitor adapt message: " << mAdapt.getMonitorName()
 //            << std::endl;
-		close(socketClient);
-	//        sleep(1);
-    }
+    close(socketClient);
+    //        sleep(1);
+  }
 }
 
 }

@@ -43,19 +43,16 @@ namespace logic {
 namespace knowledge {
 
 /**
-  * Constructor.
-  *
-  * @param a_argc Number of command line arguments.
-  * @param a_argv Command line arguments.
-  */
-V2vDenm::V2vDenm(int32_t const &a_argc, char **a_argv)
-    : TimeTriggeredConferenceClientModule(
-      a_argc, a_argv,
+ * Constructor.
+ *
+ * @param a_argc Number of command line arguments.
+ * @param a_argv Command line arguments.
+ */
+V2vDenm::V2vDenm(const int32_t &a_argc, char **a_argv) :
+        TimeTriggeredConferenceClientModule(a_argc, a_argv,
                 "knowledge-v2vdenm"),
-    // m_sendLog(),
-    m_receiveLog(),
-    m_timeType2004(), m_simulation(false), m_role("")
-{
+        // m_sendLog(),
+        m_receiveLog(), m_timeType2004(), m_simulation(false), m_role("") {
 
   /*MEMBER VARS NOT USED*/
   /**
@@ -133,17 +130,15 @@ V2vDenm::V2vDenm(int32_t const &a_argc, char **a_argv)
    **/
 }
 
-V2vDenm::~V2vDenm()
-{
+V2vDenm::~V2vDenm() {
 }
 
-odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vDenm::body()
-{
+odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vDenm::body() {
   int32_t i = 0;
-  while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
-      odcore::data::dmcp::ModuleStateMessage::RUNNING) {
+  while (getModuleStateAndWaitForRemainingTimeInTimeslice()
+          == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
     if (m_simulation) {
-    i++;
+      i++;
       if (i == 100 && m_role == "witness") {
         //send CRASH!
 
@@ -169,20 +164,16 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vDenm::body()
         getConference().send(c);
       }
     }
-
   }
-
 
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
 }
 
-void V2vDenm::nextContainer(odcore::data::Container &a_c)
-{
+void V2vDenm::nextContainer(odcore::data::Container &a_c) {
   if (m_simulation) {
     if (a_c.getDataType() == Voice::ID()
             && !(a_c.getSenderStamp() == getIdentifier())) {
-      Voice voice =
-              a_c.getData<Voice>();
+      Voice voice = a_c.getData<Voice>();
       if (voice.getType() == "denm") {
         std::cout << "Process denm event message" << std::endl;
       }
@@ -311,27 +302,24 @@ void V2vDenm::nextContainer(odcore::data::Container &a_c)
    **/
 }
 
-void V2vDenm::setUp()
-{
+void V2vDenm::setUp() {
   m_simulation = getKeyValueConfiguration().getValue<bool>(
           "knowledge-v2vdenm.simulation");
   m_role = getKeyValueConfiguration().getValue<string>(
           "knowledge-v2vdenm.role");
 }
 
-void V2vDenm::tearDown()
-{
+void V2vDenm::tearDown() {
 }
 
-
-uint64_t V2vDenm::GenerateGenerationTime() const
-{
+uint64_t V2vDenm::GenerateGenerationTime() const {
   std::chrono::system_clock::time_point start2004TimePoint =
-      std::chrono::system_clock::from_time_t(m_timeType2004);
+          std::chrono::system_clock::from_time_t(m_timeType2004);
   uint64_t millisecondsSince2004Epoch =
-      std::chrono::system_clock::now().time_since_epoch() /
-      std::chrono::milliseconds(1)
-      - start2004TimePoint.time_since_epoch() / std::chrono::milliseconds(1);
+          std::chrono::system_clock::now().time_since_epoch()
+                  / std::chrono::milliseconds(1)
+                  - start2004TimePoint.time_since_epoch()
+                          / std::chrono::milliseconds(1);
   return millisecondsSince2004Epoch;
 }
 
