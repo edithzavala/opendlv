@@ -70,7 +70,7 @@ KsamClient::KsamClient(const int32_t &a_argc, char **a_argv) :
         DataTriggeredConferenceClientModule(a_argc, a_argv,
                 "adaptation-ksamclient"), m_initialized(false), m_v2vcam(false), m_v2vcamRequest(
                 false), m_laneFollower(false), m_simulation(false), m_cameraActive(
-                true), m_gpsActive(true)
+                false), m_gpsActive(true)
 //    , m_mtx()
 //    , m_debug()
 {
@@ -83,6 +83,7 @@ KsamClient::KsamClient(const int32_t &a_argc, char **a_argv) :
 KsamClient::~KsamClient() {
 }
 void KsamClient::setUp() {
+  std::cout << "Ksam client started" << std::endl;
   odcore::base::KeyValueConfiguration kv = getKeyValueConfiguration();
   m_simulation = kv.getValue<bool>("adaptation-ksamclient.simulation");
   m_initialized = true;
@@ -118,15 +119,19 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
       //if adaptation is for the camera
       if (ma.getMonitorName().compare("axiscamera") == 0) {
         if (ma.getAction().compare("add") == 0) {
+          std::cout << "Axiscamera added" << std::endl;
           m_cameraActive = true;
         } else if (ma.getAction().compare("remove") == 0) {
+          std::cout << "Axiscamera removed" << std::endl;
           m_cameraActive = false;
         }
       } else if (ma.getMonitorName().compare("applanixGps") == 0) {
         if (ma.getAction().compare("add") == 0) {
+          std::cout << "ApplanixGps added" << std::endl;
           m_gpsActive = true;
         } else if (ma.getAction().compare("remove") == 0) {
           m_gpsActive = false;
+          std::cout << "ApplanixGps removed" << std::endl;
         }
       }
     }
@@ -151,6 +156,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                         + std::to_string(
                                 a_c.getSampleTimeStamp().toMicroseconds())
                         + "','value':'" + std::to_string(imgSize) + "'}]}]}]}";
+        std::cout << "Send axiscamera data" << std::endl;
         sendMessage = true;
       }
     } else if (a_c.getDataType() == automotive::VehicleData::ID()) {
@@ -202,14 +208,14 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
         double azimuthIncrement = (endAzimuth - startAzimuth)
                 / numberOfPointsPerLayer;
 
-        std::cout << "Start azimuth " << std::to_string(startAzimuth)
-                << std::endl;
-        std::cout << "End azimuth " << std::to_string(endAzimuth) << std::endl;
-
-        std::cout << "Number of points " << numberOfPoints << std::endl;
-        std::cout << "Number of points per layer " << numberOfPointsPerLayer
-                << std::endl;
-        std::cout << "Azimuth increment " << azimuthIncrement << std::endl;
+//        std::cout << "Start azimuth " << std::to_string(startAzimuth)
+//                << std::endl;
+//        std::cout << "End azimuth " << std::to_string(endAzimuth) << std::endl;
+//
+//        std::cout << "Number of points " << numberOfPoints << std::endl;
+//        std::cout << "Number of points per layer " << numberOfPointsPerLayer
+//                << std::endl;
+//        std::cout << "Azimuth increment " << azimuthIncrement << std::endl;
 
         double azimuth = startAzimuth;
 
@@ -293,6 +299,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                                 a_c.getSampleTimeStamp().toMicroseconds())
                         + "','value':'" + std::to_string(rearDistance)
                         + "'}]}]}]}";
+//        std::cout << "Send velodyne32Lidar data" << std::endl;
         sendMessage = true;
       }
 
@@ -321,6 +328,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                               a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'" + std::to_string(lon) + "'}]}]}]}";
       sendMessage = true;
+//      std::cout << "Send applanixGps lat/lon data" << std::endl;
 
     } else if (a_c.getDataType() == opendlv::device::gps::pos::Grp1Data::ID()) {
       /**--------------APPLANIX IMU DATA---------------------**/
@@ -341,7 +349,7 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
                               a_c.getSampleTimeStamp().toMicroseconds())
                       + "','value':'" + std::to_string(speed) + "'}]}]}]}";
       sendMessage = true;
-
+//      std::cout << "Send applanixGps speed data" << std::endl;
     } else if (a_c.getDataType() == Voice::ID() && a_c.getSenderStamp() == 1) {
       /**--------------V2VCAM DATA FROM EXTERNAL SYSTEMS---------------------**/
       Voice voice = a_c.getData<Voice>();
@@ -516,28 +524,28 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
 
   if (sendMessage) {
 //    std::cout << data << std::endl;
-    int socket_client = socket(AF_INET, SOCK_STREAM, 0);
-
-    struct sockaddr_in server;
-    server.sin_family = AF_INET;
-    server.sin_port = htons(8083);
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-    if (socket_client < 0) {
-      std::cout << "Socket could not be created" << std::endl;
-    }
-
-    if (connect(socket_client, (struct sockaddr *) &server, sizeof(server))
-            < 0) {
-      std::cout << "Connection failed due to port and ip problems" << std::endl;
-    }
-
-    //        std::cout << data << std::endl;
-    if (write(socket_client, data.c_str(), strlen(data.c_str())) < 0) {
-      std::cout << "Data send failed" << std::endl;
-    }
-
-    close(socket_client);
+//    int socket_client = socket(AF_INET, SOCK_STREAM, 0);
+//
+//    struct sockaddr_in server;
+//    server.sin_family = AF_INET;
+//    server.sin_port = htons(8083);
+//    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+//
+//    if (socket_client < 0) {
+//      std::cout << "Socket could not be created" << std::endl;
+//    }
+//
+//    if (connect(socket_client, (struct sockaddr *) &server, sizeof(server))
+//            < 0) {
+//      std::cout << "Connection failed due to port and ip problems" << std::endl;
+//    }
+//
+//    //        std::cout << data << std::endl;
+//    if (write(socket_client, data.c_str(), strlen(data.c_str())) < 0) {
+//      std::cout << "Data send failed" << std::endl;
+//    }
+//
+//    close(socket_client);
 
     sendMessage = false;
   }

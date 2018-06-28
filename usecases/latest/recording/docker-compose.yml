@@ -3,7 +3,7 @@ version: '2'
 
 services:
     #odsupercomponent
-    #    odsupercomponent:
+    #   odsupercomponent:
     #   image: ${IMAGE}
     #   network_mode: "host"
     #   volumes:
@@ -33,35 +33,19 @@ services:
        command: "/opt/opendlv.core/bin/opendlv-core-system-proxy-velodyne32 --cid=${CID}"
 
     # Micro-service for proxy-camera-axis0.
-    #proxy-camera-axis:
-    #  image: ${IMAGE}
+    proxy-camera-axis:
+      image: ${IMAGE}
     #  depends_on:
     #      - odsupercomponent
-    #  environment:
-    #       - DISPLAY=$DISPLAY
-    #  volumes:
-    #     - /tmp/.X11-unix:/tmp/.X11-unix
-    #     - .:/opt/opendlv.core.configuration
-    #  user: root  # This parameter will be replaced as soon as group_add parameter is available in docker-compose, cf. https://github.com/docker/compose/pull/3709.
-    #  network_mode: host
-    #  ipc: host
-    #  command: "/opt/opendlv.core/bin/opendlv-core-system-proxy-camera-axis --cid=${CID} --freq=20 --id=0"   
-
-    # Micro-service for proxy-camera.
-    proxy-camera:
-        build: .
-        group_add:
-            - video
-              #        depends_on:
-              #- odsupercomponent
-        cap_add:
-            - SYS_NICE
-        devices:
-            - "/dev/video0:/dev/video0"
-        user: root
-        network_mode: host
-        ipc: host
-        command: "/opt/opendlv.core/bin/opendlv-core-system-proxy-camera --cid=${CID} --freq=20 --realtime=20"
+      environment:
+           - DISPLAY=$DISPLAY
+      volumes:
+         - /tmp/.X11-unix:/tmp/.X11-unix
+         - .:/opt/opendlv.core.configuration
+      user: root  # This parameter will be replaced as soon as group_add parameter is available in docker-compose, cf. https://github.com/docker/compose/pull/3709.
+      network_mode: host
+      ipc: host
+      command: "/opt/opendlv.core/bin/opendlv-core-system-proxy-camera-axis --cid=${CID} --freq=20 --id=0"   
        
     proxy-xc90:
        image: ${IMAGE}
@@ -71,4 +55,13 @@ services:
        #  - odsupercomponent
        command: "/opt/dlv.snowfox/bin/snowfox-proxy-xc90 --cid=${CID} --freq=100"
 
+    odrecorderh264:
+        image: ${IMAGE}
+        volumnes:
+        - ~/recordings:/opt/recordings
+        user: root
+        network_mode: host
+        ipc: host
+        working_dir: "/opt/recordings"
+        command: "opt/od4/bin/odrecorderh264 --cid=${CID}"
 

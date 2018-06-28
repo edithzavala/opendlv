@@ -142,7 +142,7 @@ $(BUILD_PATH)/$(PROJECT_NAME).build/build.incremental:
 buildComplete:
 	$(call compile)
 
-updateBuildComplete: updateDockerBaseImage
+updateBuildComplete: updateDockerBaseImagef
 	$(call compile)
 
 # Dependency to allow incremental builds.

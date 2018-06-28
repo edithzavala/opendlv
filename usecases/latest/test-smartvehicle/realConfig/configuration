@@ -5,6 +5,8 @@ global.session.expectedModules = odrecorderh264,proxy-camera,adaptation-ksamclie
 
 adaptation-ksamclient:3.simulation = 0
 
+adaptation-ksamserver:4.simulation = 0
+
 odcockpit.directoriesForSharedLibaries = /opt # List of directories to search for libodvd*.so files.
 global.car = 0
 global.scenario = 0 
@@ -24,9 +26,9 @@ odrecorderh264.portbaseforchildprocesses = 29000 # Every spawned child processes
 
 proxy-camera-axis:0.name = AxisCamera0
 proxy-camera-axis:0.debug = 0               # 1 = show recording (requires X11), 0 = otherwise.
-proxy-camera-axis:0.address = 10.42.42.14
-proxy-camera-axis:0.username = guest
-proxy-camera-axis:0.password = axis
+proxy-camera-axis:0.address = 10.42.42.16
+proxy-camera-axis:0.username = root
+proxy-camera-axis:0.password = pass
 proxy-camera-axis:0.width = 1280
 proxy-camera-axis:0.height = 720
 proxy-camera-axis:0.calibrationfile = /opt/opendlv.core.configuration/file.yml  # This file must be accessible from within the Docker container.
@@ -54,3 +56,25 @@ proxy-xc90.record_gcm = 0           # 1 = Dump generic CAN messages (no broadcas
 proxy-xc90.record_mapped_data = 0   # 1 = Record mapped containers.
 proxy-xc90.record_asc = 0           # 1 = Dump ASC data from CAN.
 proxy-xc90.read-only = 1            # 1 = read-only , 0 = read/write
+
+### CONFIGURATION V2VCAM
+knowledge-v2vcam.printOutbound = 1
+knowledge-v2vcam.printInbound = 1
+knowledge-v2vcam.record = 0
+knowledge-v2vcam.debug = 1
+knowledge-v2vcam.simulation = 0
+
+### CONFIGURATION V2VCAM_1
+knowledge-v2vcam:1.printOutbound = 1
+knowledge-v2vcam:1.printInbound = 1
+knowledge-v2vcam:1.record = 0
+knowledge-v2vcam:1.debug = 1
+knowledge-v2vcam:1.simulation = 0
+
+### CONFIGURATION V2VDENM
+knowledge-v2vdenm.simulation = 0
+knowledge-v2vdenm.role = listener
+
+### CONFIGURATION V2VDENM_1
+knowledge-v2vdenm:1.simulation = 0
+knowledge-v2vdenm:1.role = witness
