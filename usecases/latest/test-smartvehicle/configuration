@@ -1,29 +1,39 @@
+### CONFIGURATION GLOBAL
 global.buffer.memorySegmentSize = 2800000 # Size of a memory segment in bytes.
 global.buffer.numberOfMemorySegments = 20 # Number of memory segments.
-
-global.session.expectedModules = odrecorderh264,proxy-camera,adaptation-ksamclient:3,adaptation-ksamserver:4
-
-adaptation-ksamclient:3.simulation = 0
-
-adaptation-ksamserver:4.simulation = 0
-
+global.session.expectedModules = odrecorderh264,proxy-camera,adaptation-ksamclient:3,adaptation-ksamserver:4,lanefollower
 odcockpit.directoriesForSharedLibaries = /opt # List of directories to search for libodvd*.so files.
 global.car = 0
 global.scenario = 0 
 global.showGrid = 0
 
+global.lanefollower.active = 1
+global.camera-axis.active = 1
+global.applanix.active = 1
+global.velodyne32.active = 1
+global.xc90.active = 1 
+global.v2vcam.active = 1
+global.v2vdenm.active = 1
 
+### CONFIGURATION LANEFOLLOWER
+lanefollower.camera_id = 0 # select here the proper camera
+lanefollower.debug = 1 # set to 0 to disable any windows and further output
+lanefollower.simulation = 0
+
+### CONFIGURATION ODSUPERCOMPONENT
 odsupercomponent.pulseshift.shift = 10000 # (in microseconds)
 odsupercomponent.pulsetimeack.timeout = 5000 # (in milliseconds)
 odsupercomponent.pulsetimeack.yield = 5000 # (in microseconds)
 odsupercomponent.pulsetimeack.exclude = odcockpit
 
+### CONFIGURATION ODRECORDER
 #odrecorderh264.output = file://recorder.rec # If this parameter is not present, odrecorderh264 will autogenerate a filename.
 odrecorderh264.remoteControl = 0 # 0 = no remote control, 1 = allowing remote control (i.e. start and stop recording)
 odrecorderh264.dumpSharedData = 0 # 0 = do not dump shared images and shared images, 1 = otherwise
 odrecorderh264.lossless = 1 # Set to 1 to enable h264 lossless encoding.
 odrecorderh264.portbaseforchildprocesses = 29000 # Every spawned child processes is connecting to the parent process via TCP using the base port plus its increasing ID.
 
+### CONFIGURATION CAMERA
 proxy-camera-axis:0.name = AxisCamera0
 proxy-camera-axis:0.debug = 0               # 1 = show recording (requires X11), 0 = otherwise.
 proxy-camera-axis:0.address = 10.42.42.16
@@ -33,9 +43,11 @@ proxy-camera-axis:0.width = 1280
 proxy-camera-axis:0.height = 720
 proxy-camera-axis:0.calibrationfile = /opt/opendlv.core.configuration/file.yml  # This file must be accessible from within the Docker container.
 
+### CONFIGURATION GPS
 proxy-applanix.ip = 10.42.42.40    # Change to Applanix IP.
-proxy-applanix.port = 5602    
+proxy-applanix.port = 5602  
 
+### CONFIGURATION LIDAR
 proxy-velodyne32.pointCloudOption = 1 #0: shared point cloud (SPC) only; 1: compact point cloud (CPC) only; 2: both SPC and CPC
 proxy-velodyne32.SPCOption = 1  # 0: xyz+intensity; 1: distance+azimuth+vertical angle+intensity
 proxy-velodyne32.CPCIntensityOption = 0  #0: no intensity, 1: with intensity, 2: both
@@ -50,6 +62,7 @@ proxy-velodyne32.udpPort = 2368
 proxy-velodyne32.calibration = HDL-32E.xml
 
 
+### CONFIGURATION CAN
 proxy-xc90.devicenode = can0        # SocketCAN device.
 proxy-xc90.debug = 0                # Enable debug output to console.
 proxy-xc90.record_gcm = 0           # 1 = Dump generic CAN messages (no broadcasting).
@@ -74,7 +87,14 @@ knowledge-v2vcam:1.simulation = 0
 ### CONFIGURATION V2VDENM
 knowledge-v2vdenm.simulation = 0
 knowledge-v2vdenm.role = listener
+knowledge-v2vdenm.crash = 1
 
 ### CONFIGURATION V2VDENM_1
 knowledge-v2vdenm:1.simulation = 0
 knowledge-v2vdenm:1.role = witness
+knowledge-v2vdenm:1.crash = 1
+
+### CONFIGURATION KSAM
+adaptation-ksamclient:3.simulation = 0
+adaptation-ksamclient:3.forwardData = 0
+adaptation-ksamserver:4.simulation = 0

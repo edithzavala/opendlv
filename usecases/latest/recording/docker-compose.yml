@@ -57,11 +57,11 @@ services:
 
     odrecorderh264:
         image: ${IMAGE}
-        volumnes:
+        volumes:
         - ~/recordings:/opt/recordings
         user: root
         network_mode: host
         ipc: host
         working_dir: "/opt/recordings"
-        command: "opt/od4/bin/odrecorderh264 --cid=${CID}"
+        command: "/opt/od4/bin/odrecorderh264 --cid=${CID}"
 

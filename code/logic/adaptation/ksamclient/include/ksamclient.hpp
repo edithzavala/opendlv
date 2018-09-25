@@ -27,9 +27,6 @@
 #include <utility>
 
 #include <opencv2/core/core.hpp>
-//#include <opencv2/imgproc/imgproc.hpp>
-//#include <opencv2/highgui/highgui.hpp>
-
 
 #include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
 #include "opendavinci/odcore/base/module/DataTriggeredConferenceClientModule.h"
@@ -37,29 +34,56 @@
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
 
+#include "MonitorAdaptation.h"
+
 namespace opendlv {
 namespace logic {
 namespace adaptation {
 
 class KsamClient
 : public odcore::base::module::DataTriggeredConferenceClientModule {
- public:
-    KsamClient(const int32_t &, char **);
-    KsamClient(const KsamClient &) = delete;
-    KsamClient &operator=(const KsamClient &) = delete;
+public:
+  KsamClient(const int32_t &, char **);
+  KsamClient(const KsamClient &) = delete;
+  KsamClient &operator=(const KsamClient &) = delete;
   virtual ~KsamClient();
   virtual void nextContainer(odcore::data::Container &);
 
- private:
+private:
   void setUp();
   void tearDown();
+
+  void processSimulationData(odcore::data::Container &);
+  void processIrusData(odcore::data::Container &);
+  void processSimCameraData(odcore::data::Container &);
+  void processVehiclePositionData(odcore::data::Container &);
+  void processVehicleControlData(odcore::data::Container &);
+
+  void processRealData(odcore::data::Container &);
+  void processCameraData(odcore::data::Container &);
+  void processGpsData(odcore::data::Container &);
+  void processLidarData(odcore::data::Container &);
+  void processCanData(odcore::data::Container &);
+
+  void processV2VData(odcore::data::Container &);
+
+  void processAdaptation(MonitorAdaptation &);
+  void forwardDataToKsam(std::string &);
+
   bool m_initialized;
-    bool m_v2vcam;
-    bool m_v2vcamRequest;
-    bool m_laneFollower;
-    bool m_simulation;
-    bool m_cameraActive;
-    bool m_gpsActive;
+  bool m_simulation;
+  bool m_v2vcamRequest;
+  bool m_forwardData;
+
+  bool m_laneFollowerIsActive;
+  bool m_v2vcamIsActive;
+  bool m_v2vdenmIsActive;
+
+  bool m_cameraIsActive;
+  bool m_gpsIsActive;
+  bool m_lidarIsActive;
+  bool m_canIsActive;
+
 };
 
 }

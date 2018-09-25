@@ -2,6 +2,12 @@
 global.car = Car1.objx
 global.scenario = file://Parking-boxes-2.scnx
 global.showGrid = 0
+
+global.lanefollower.active = 1
+global.lanefollower.active = 1
+global.v2vcam.active = 1
+global.v2vdenm.active = 1
+
 global.reference.WGS84.latitude = 57.70485804
 global.reference.WGS84.longitude = -11.93831921
 global.buffer.memorySegmentSize = 480000 # Size of a memory segment in bytes.
@@ -65,7 +71,7 @@ odsimirus.sensor3.distanceFOV = 40              # In meters.
 odsimirus.sensor3.clampDistance = 39            # Any distances greater than this distance will be ignored and -1 will be returned.
 odsimirus.sensor3.showFOV = 1                   # Show FOV in monitor.
 odsimirus.sensor3.faultModel.skip = 1
-odsimirus.sensor3.faultModel.skip = 0
+#odsimirus.sensor3.faultModel.skip = 0
 
 odsimirus.sensor4.id = 4                        # This ID is used in SensorBoardData structure.
 odsimirus.sensor4.name = UltraSonic_FrontRight  # Name of the sensor
@@ -204,10 +210,12 @@ odsimcamera:1.id = 1
 ### CONFIGURATION LANEFOLLOWER
 lanefollower.camera_id = 0 # select here the proper camera
 lanefollower.debug = 1 # set to 0 to disable any windows and further output
+lanefollower.simulation = 1
 
 ### CONFIGURATION LANEFOLLOWER_1
 lanefollower:1.camera_id = 1 # select here the proper camera
 lanefollower:1.debug = 1 # set to 0 to disable any windows and further output
+lanefollower:1.simulation = 1
 
 ### CONFIGURATION V2VCAM
 knowledge-v2vcam.printOutbound = 1
@@ -226,9 +234,14 @@ knowledge-v2vcam:1.simulation = 1
 ### CONFIGURATION V2VDENM
 knowledge-v2vdenm.simulation = 1
 knowledge-v2vdenm.role = listener
+knowledge-v2vdenm.crash = 0
 
 ### CONFIGURATION V2VDENM_1
 knowledge-v2vdenm:1.simulation = 1
 knowledge-v2vdenm:1.role = witness
+knowledge-v2vdenm:1.crash = 0
 
+### CONFIGURATION KSAM
 adaptation-ksamclient:3.simulation = 1
+adaptation-ksamclient:3.forwardData = 0
+adaptation-ksamserver:4.simulation = 1

@@ -35,9 +35,9 @@ namespace knowledge {
 class V2vDenm
 : public odcore::base::module::TimeTriggeredConferenceClientModule {
  public:
-  V2vDenm(int32_t const &, char **);
-  V2vDenm(V2vDenm const &) = delete;
-  V2vDenm &operator=(V2vDenm const &) = delete;
+    V2vDenm(const int32_t &, char **);
+    V2vDenm(const V2vDenm &) = delete;
+    V2vDenm &operator=(const V2vDenm &) = delete;
   virtual ~V2vDenm();
   virtual void nextContainer(odcore::data::Container &);
 
@@ -51,6 +51,7 @@ class V2vDenm
   std::time_t m_timeType2004;
     bool m_simulation;
     std::string m_role;
+    bool m_crash;
 
     uint64_t GenerateGenerationTime() const;
 

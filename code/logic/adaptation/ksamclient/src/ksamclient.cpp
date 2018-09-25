@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017 Chalmers Revere, UPC
+ * Copyright (C) 2018 Chalmers Revere, UPC
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,12 +54,6 @@ namespace opendlv {
 namespace logic {
 namespace adaptation {
 
-//using namespace std;
-//using namespace odcore::base;
-//using namespace odcore::base::module;
-//using namespace odcore::data;
-//using namespace automotive;
-
 /**
  * Constructor.
  *
@@ -67,26 +61,37 @@ namespace adaptation {
  * @param a_argv Command line arguments.
  */
 KsamClient::KsamClient(const int32_t &a_argc, char **a_argv) :
-        DataTriggeredConferenceClientModule(a_argc, a_argv,
-                "adaptation-ksamclient"), m_initialized(false), m_v2vcam(false), m_v2vcamRequest(
-                false), m_laneFollower(false), m_simulation(false), m_cameraActive(
-                false), m_gpsActive(true)
+    DataTriggeredConferenceClientModule(a_argc, a_argv,
+        "adaptation-ksamclient"), m_initialized(false), m_simulation(false), m_v2vcamRequest(
+        false), m_forwardData(false), m_laneFollowerIsActive(false), m_v2vcamIsActive(
+        false), m_v2vdenmIsActive(false), m_cameraIsActive(false), m_gpsIsActive(
+        false), m_lidarIsActive(false), m_canIsActive(false)
 //    , m_mtx()
 //    , m_debug()
 {
 }
 
-//Ksam::Ksam(Ksam const &a_ksam): DataTriggeredConferenceClientModule(){
-//	this = a_ksam;
-//}
-
 KsamClient::~KsamClient() {
 }
 void KsamClient::setUp() {
   std::cout << "Ksam client started" << std::endl;
+
   odcore::base::KeyValueConfiguration kv = getKeyValueConfiguration();
-  m_simulation = kv.getValue<bool>("adaptation-ksamclient.simulation");
   m_initialized = true;
+  m_simulation = kv.getValue<bool>("adaptation-ksamclient.simulation");
+  m_forwardData = kv.getValue<bool>("adaptation-ksamclient.forwardData");
+
+  m_laneFollowerIsActive = kv.getValue<bool>("global.lanefollower.active");
+  m_v2vcamIsActive = kv.getValue<bool>("global.v2vcam.active");
+  m_v2vdenmIsActive = kv.getValue<bool>("global.v2vdenm.active");
+
+  if (!m_simulation) {
+    m_cameraIsActive = kv.getValue<bool>("global.camera-axis.active");
+    m_gpsIsActive = kv.getValue<bool>("global.applanix.active");
+    m_lidarIsActive = kv.getValue<bool>("global.velodyne32.active");
+    m_canIsActive = kv.getValue<bool>("global.xc90.active");
+  }
+
 //  m_debug = (kv.getValue<int32_t>("logic-adaptation-ksam.debug") == 1);
 }
 
@@ -95,141 +100,249 @@ void KsamClient::tearDown() {
 
 void KsamClient::nextContainer(odcore::data::Container &a_c) {
 //  std::cout << "Type " << a_c.getDataType() << std::endl;
-  bool sendMessage = false;
-  std::string data;
 
-  //Miniature data//////////////////////////////////////////////////////////////
-  if (a_c.getDataType() == opendlv::proxy::VoltageReading::ID()) {
-    opendlv::proxy::VoltageReading vol = a_c.getData<
-            opendlv::proxy::VoltageReading>();
-    std::cout << "Voltage: " << std::to_string(vol.getVoltage()) << std::endl;
-    sendMessage = true;
-  } else if (a_c.getDataType() == opendlv::proxy::DistanceReading::ID()) {
-    opendlv::proxy::DistanceReading dist = a_c.getData<
-            opendlv::proxy::DistanceReading>();
-    std::cout << "Distance: " << std::to_string(dist.getDistance())
-            << std::endl;
-    sendMessage = true;
-  }
-  ///////////////////////////////////////////////////////////////////////////////
-  if (!m_simulation) {
+  if (a_c.getDataType() == Voice::ID()) {
+    processV2VData(a_c);
+  } else if (!m_simulation) {
     if (a_c.getDataType() == MonitorAdaptation::ID()) {
-
+      std::cout << a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms()
+          << "adaptation received" << std::endl;
       MonitorAdaptation ma = a_c.getData<MonitorAdaptation>();
-      //if adaptation is for the camera
-      if (ma.getMonitorName().compare("axiscamera") == 0) {
-        if (ma.getAction().compare("add") == 0) {
-          std::cout << "Axiscamera added" << std::endl;
-          m_cameraActive = true;
-        } else if (ma.getAction().compare("remove") == 0) {
-          std::cout << "Axiscamera removed" << std::endl;
-          m_cameraActive = false;
-        }
-      } else if (ma.getMonitorName().compare("applanixGps") == 0) {
-        if (ma.getAction().compare("add") == 0) {
-          std::cout << "ApplanixGps added" << std::endl;
-          m_gpsActive = true;
-        } else if (ma.getAction().compare("remove") == 0) {
-          m_gpsActive = false;
-          std::cout << "ApplanixGps removed" << std::endl;
-        }
+      processAdaptation(ma);
+    } else {
+      processRealData(a_c);
+    }
+  } else {
+    processSimulationData(a_c);
+  }
+}
+
+void KsamClient::processAdaptation(MonitorAdaptation &a_ma) {
+  if (a_ma.getMonitorName().compare("axiscamera") == 0) {
+    if (a_ma.getAction().compare("add") == 0) {
+      std::cout << "Axis camera added" << std::endl;
+      m_cameraIsActive = true;
+    } else if (a_ma.getAction().compare("remove") == 0) {
+      std::cout << "Axis camera removed" << std::endl;
+      m_cameraIsActive = false;
+    }
+  } else if (a_ma.getMonitorName().compare("applanixGps") == 0) {
+    if (a_ma.getAction().compare("add") == 0) {
+      std::cout << "Applanix gps added" << std::endl;
+      m_gpsIsActive = true;
+    } else if (a_ma.getAction().compare("remove") == 0) {
+      m_gpsIsActive = false;
+      std::cout << "Applanix gps removed" << std::endl;
+    }
+  } else if (a_ma.getMonitorName().compare("velodyne32Lidar") == 0) {
+    if (a_ma.getAction().compare("add") == 0) {
+      std::cout << "Velodyne32 lidar added" << std::endl;
+      m_lidarIsActive = true;
+    } else if (a_ma.getAction().compare("remove") == 0) {
+      m_lidarIsActive = false;
+      std::cout << "Velodyne32 lidar removed" << std::endl;
+    }
+  } else if (a_ma.getMonitorName().compare("can") == 0) {
+    if (a_ma.getAction().compare("add") == 0) {
+      std::cout << "CAN added" << std::endl;
+      m_canIsActive = true;
+    } else if (a_ma.getAction().compare("remove") == 0) {
+      m_canIsActive = false;
+      std::cout << "CAN removed" << std::endl;
+    }
+  }
+}
+
+void KsamClient::processV2VData(odcore::data::Container &a_c) {
+  Voice voice = a_c.getData<Voice>();
+  if (!m_simulation) {
+    //m_v2vcamIsActive, m_v2vdenmIsActive not revised. If a message is received we assume they has been activated.
+    if (voice.getType() == "cam") { //all cam messages are sent by the Truck
+      std::string data(
+          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+              + "',"
+              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(-1)
+              + "'}]},{'varId':'trafficFactor','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(3) + "'}]}]}]}");
+      forwardDataToKsam(data);
+    } else if (voice.getType() == "denm") { //all denm messages are sent by the Truck
+      std::string data(
+          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+              + "'," + "'context': [{'services': [");
+      if (m_laneFollowerIsActive) {
+        data += "'laneFollower'";
       }
+      data +=
+          "]}],'monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'CRASH'}]}]}]}";
+      forwardDataToKsam(data);
+    }
+  } else {
+    //  && a_c.getSenderStamp() == 1) {
+    if (voice.getType() == "cam") { //all cam messages are sent by the 2nd simvehicle
+      m_v2vcamIsActive = true;
+    } else if (voice.getType() == "denm") { //all denm messages are sent by the 2nd simvehicle
+      std::string data(
+          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+              + "'," + "'context': [{'services': [");
+      if (m_laneFollowerIsActive) {
+        data += "'laneFollower'";
+      }
+      data +=
+          "]}],'monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'CRASH'}]}]}]}";
+      forwardDataToKsam(data);
+    }
+  }
+}
+
+void KsamClient::forwardDataToKsam(std::string &a_data) {
+//  std::cout << a_data << std::endl;
+//  **********************************************
+  if (m_forwardData) {
+    int socket_client = socket(AF_INET, SOCK_STREAM, 0);
+
+    struct sockaddr_in server;
+    server.sin_family = AF_INET;
+    server.sin_port = htons(8083);
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (socket_client < 0) {
+      std::cout << "Socket could not be created" << std::endl;
     }
 
-    if (a_c.getDataType() == opendlv::proxy::ImageReadingShared::ID()) {
-      /**--------------AXIS CAMERA DATA---------------------**/
-      opendlv::proxy::ImageReadingShared is = a_c.getData<
-              opendlv::proxy::ImageReadingShared>();
-      if (m_cameraActive) {
-        uint32_t imgSize = is.getSize();
+    if (connect(socket_client, (struct sockaddr *) &server, sizeof(server))
+        < 0) {
+      std::cout << "Connection failed due to port and ip problems" << std::endl;
+    }
 
-        data +=
-                "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                        + std::to_string(
-                                a_c.getReceivedTimeStamp().toMicroseconds())
-                        + "',"
-                        + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'axiscamera','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(0)
-                        + "'}]},{'varId':'imgSize','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(imgSize) + "'}]}]}]}";
-        std::cout << "Send axiscamera data" << std::endl;
-        sendMessage = true;
-      }
-    } else if (a_c.getDataType() == automotive::VehicleData::ID()) {
-      /**--------------CAN DATA---------------------**/
-      automotive::VehicleData vd = a_c.getData<automotive::VehicleData>();
+    //        std::cout << a_data << std::endl;
+    if (write(socket_client, a_data.c_str(), strlen(a_data.c_str())) < 0) {
+      std::cout << "Data send failed" << std::endl;
+    }
 
-      // Assume vehicle is never in reverse
-      double speed = vd.getSpeed();
-      if (speed < 0) {
-        speed = 0;
-      }
+    close(socket_client);
+  }
+//*************************************************
+}
 
-      data +=
-              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                      + std::to_string(
-                              a_c.getReceivedTimeStamp().toMicroseconds())
-                      + "',"
-                      + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'can','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
-                      + std::to_string(
-                              a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(speed) + "'}]}]}]}";
-      //            std::cout << data << std::endl;
-      sendMessage = true;
-    } else if (a_c.getDataType() == opendlv::proxy::PointCloudReading::ID()) {
-      /**--------------VELODYNE DATA ---------------------**/
-      opendlv::proxy::PointCloudReading pc = a_c.getData<
-              opendlv::proxy::PointCloudReading>();
-      int8_t numberOfLayersInMessage = pc.getEntriesPerAzimuth();
+void KsamClient::processRealData(odcore::data::Container &a_c) {
+  if (a_c.getDataType() == opendlv::proxy::ImageReading::ID()) {
+    processCameraData(a_c);
+  } else if (a_c.getDataType() == opendlv::proxy::GroundSpeedReading::ID()) {
+    processCanData(a_c);
+  } else if (a_c.getDataType() == opendlv::proxy::PointCloudReading::ID()) {
+    processLidarData(a_c);
+  } else if (a_c.getDataType()
+      == opendlv::data::environment::WGS84Coordinate::ID()
+      || a_c.getDataType() == opendlv::device::gps::pos::Grp1Data::ID()) {
+    processGpsData(a_c);
+  }
+}
 
-      if (numberOfLayersInMessage == 9) {
-        std::string distances = pc.getDistances();
-        double endAzimuth = pc.getEndAzimuth();
-        double startAzimuth = pc.getStartAzimuth();
-        //      int8_t numberOfBitsForIntensity = pc.getNumberOfBitsForIntensity(); // 0
-        double frontalDistance = 0.0;
-        double rearDistance = 0.0;
-        double rightDistance = 0.0;
-        double leftDistance = 0.0;
+void KsamClient::processCameraData(odcore::data::Container &a_c) {
+  if (m_cameraIsActive) {
+    opendlv::proxy::ImageReading is =
+        a_c.getData<opendlv::proxy::ImageReading>();
+    uint32_t imgSize = is.getWidth() * is.getHeight();
+    std::string data(
+        "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+            + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+            + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'axiscamera','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+            + "','value':'" + std::to_string(0)
+            + "'}]},{'varId':'imgSize','measures': [{'mTimeStamp': '"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+            + "','value':'" + std::to_string(imgSize) + "'}]}]}]}");
+//        std::cout << "Send axiscamera data" << std::endl;
+    forwardDataToKsam(data);
+  } else {
+    std::cout << "Axis camera off" << std::endl;
+  }
+}
+void KsamClient::processGpsData(odcore::data::Container &a_c) {
+  if (m_gpsIsActive) {
+    if (a_c.getDataType()
+        == opendlv::data::environment::WGS84Coordinate::ID()) {
+      opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
+          opendlv::data::environment::WGS84Coordinate>();
+      double lat = gps.getLatitude();
+      double lon = gps.getLongitude();
+      std::string data(
+          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+              + "',"
+              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(lat)
+              + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(lon) + "'}]}]}]}");
+      forwardDataToKsam(data);
+//      std::cout << "Send applanixGps lat/lon data" << std::endl;
+    } else {
+      opendlv::device::gps::pos::Grp1Data grp1 = a_c.getData<
+          opendlv::device::gps::pos::Grp1Data>();
+      float speed = grp1.getSpeed() * 3600 / 1000; //speed is translated into km/h (speed*3600/1000)
+      std::string data(
+          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+              + "',"
+              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(speed) + "'}]}]}]}");
+      forwardDataToKsam(data);
+//      std::cout << "Send applanixGps speed data" << std::endl;
+    }
+  } else {
+    std::cout << "Applanix gps off" << std::endl;
+  }
+}
+void KsamClient::processLidarData(odcore::data::Container &a_c) {
+  if (m_lidarIsActive) {
+    opendlv::proxy::PointCloudReading pc = a_c.getData<
+        opendlv::proxy::PointCloudReading>();
 
-        std::vector<unsigned char> distancesData(distances.begin(),
-                distances.end());
-        std::shared_ptr<const Buffer> buffer(new Buffer(distancesData));
-        std::shared_ptr<Buffer::Iterator> inIterator = buffer->GetIterator();
-        //Long and little endian reverser
-        inIterator->ItReversed();
+    int8_t numberOfLayersInMessage = pc.getEntriesPerAzimuth();
 
-        int numberOfPoints = buffer->GetSize() / 2;
-        int numberOfPointsPerLayer = numberOfPoints / numberOfLayersInMessage;
-        double azimuthIncrement = (endAzimuth - startAzimuth)
-                / numberOfPointsPerLayer;
+    if (numberOfLayersInMessage == 9) {
+      std::string distances = pc.getDistances();
+      double endAzimuth = pc.getEndAzimuth();
+      double startAzimuth = pc.getStartAzimuth();
+      //      int8_t numberOfBitsForIntensity = pc.getNumberOfBitsForIntensity(); // 0
+      double frontalDistance = 0.0;
+      double rearDistance = 0.0;
+      double rightDistance = 0.0;
+      double leftDistance = 0.0;
+      std::vector<unsigned char> distancesData(distances.begin(),
+          distances.end());
+      std::shared_ptr<const Buffer> buffer(new Buffer(distancesData));
+      std::shared_ptr<Buffer::Iterator> inIterator = buffer->GetIterator();
+      //Long and little endian reverser
+      inIterator->ItReversed();
+      int numberOfPoints = buffer->GetSize() / 2;
+      int numberOfPointsPerLayer = numberOfPoints / numberOfLayersInMessage;
+      double azimuthIncrement = (endAzimuth - startAzimuth)
+          / numberOfPointsPerLayer;
+      double azimuth = startAzimuth;
+      double approxNinetyDegrees = startAzimuth
+          + ((numberOfPointsPerLayer / 4) * azimuthIncrement);
+      double approxOneHundredEightyDegrees = startAzimuth
+          + ((numberOfPointsPerLayer / 2) * azimuthIncrement);
+      double approxTwoHundredSeventyDegrees = startAzimuth
+          + ((numberOfPointsPerLayer / 4) * 3 * azimuthIncrement);
 
-//        std::cout << "Start azimuth " << std::to_string(startAzimuth)
-//                << std::endl;
-//        std::cout << "End azimuth " << std::to_string(endAzimuth) << std::endl;
-//
-//        std::cout << "Number of points " << numberOfPoints << std::endl;
-//        std::cout << "Number of points per layer " << numberOfPointsPerLayer
-//                << std::endl;
-//        std::cout << "Azimuth increment " << azimuthIncrement << std::endl;
-
-        double azimuth = startAzimuth;
-
-        double approxNinetyDegrees = startAzimuth
-                + ((numberOfPointsPerLayer / 4) * azimuthIncrement);
-        double approxOneHundredEightyDegrees = startAzimuth
-                + ((numberOfPointsPerLayer / 2) * azimuthIncrement);
-        double approxTwoHundredSeventyDegrees = startAzimuth
-                + ((numberOfPointsPerLayer / 4) * 3 * azimuthIncrement);
-
-        for (int i = 0; i < numberOfPoints; i++) {
-          short distanceTemp = inIterator->ReadShort();
-          if (i > numberOfPointsPerLayer * 3
-                  && i <= numberOfPointsPerLayer * 4) {
+      for (int i = 0; i < numberOfPoints; i++) {
+        short distanceTemp = inIterator->ReadShort();
+        if (i > numberOfPointsPerLayer * 3 && i <= numberOfPointsPerLayer * 4) {
 //            double verticalAngleLayer14 = -12.0;
 //            double xyDistance = distanceTemp
 //                    * cos(verticalAngleLayer14 * PI / 180.0);
@@ -237,319 +350,230 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
 //            double y = xyDistance * cos(azimuth * PI / 180.0);
 //            double z = distanceTemp * sin(verticalAngleLayer14 * PI / 180.0);
 
-            if (azimuth <= startAzimuth) {
-              frontalDistance = distanceTemp;
+          if (azimuth <= startAzimuth) {
+            frontalDistance = distanceTemp;
 //              std::cout << "Distance front: " << frontalDistance << " azimuth: "
 //                      << azimuth << std::endl;
-            } else if (azimuth <= (approxNinetyDegrees + azimuthIncrement)
-                    && azimuth >= approxNinetyDegrees) {
-              rightDistance = distanceTemp;
+          } else if (azimuth <= (approxNinetyDegrees + azimuthIncrement)
+              && azimuth >= approxNinetyDegrees) {
+            rightDistance = distanceTemp;
 //              std::cout << "Distance right: " << rightDistance << " azimuth: "
 //                      << azimuth << std::endl;
-            } else if (azimuth
-                    <= (approxOneHundredEightyDegrees + azimuthIncrement)
-                    && azimuth >= approxOneHundredEightyDegrees) {
-              rearDistance = distanceTemp;
+          } else if (azimuth
+              <= (approxOneHundredEightyDegrees + azimuthIncrement)
+              && azimuth >= approxOneHundredEightyDegrees) {
+            rearDistance = distanceTemp;
 //              std::cout << "Distance rear: " << rearDistance << " azimuth: "
 //                      << azimuth << std::endl;
-            } else if (azimuth
-                    <= (approxTwoHundredSeventyDegrees + azimuthIncrement)
-                    && azimuth >= approxTwoHundredSeventyDegrees) {
-              leftDistance = distanceTemp;
+          } else if (azimuth
+              <= (approxTwoHundredSeventyDegrees + azimuthIncrement)
+              && azimuth >= approxTwoHundredSeventyDegrees) {
+            leftDistance = distanceTemp;
 //              std::cout << "Distance left: " << leftDistance << " azimuth: "
 //                      << azimuth << std::endl;
-            }
-            azimuth += azimuthIncrement;
           }
-
+          azimuth += azimuthIncrement;
         }
 
-//        std::cout << distances << std::endl;
-//        std::cout << std::to_string(distances.length()) << std::endl; //39042
-//        std::cout << std::to_string(inIterator->ReadDouble()) << " - "
-//                << std::to_string(inIterator->ReadDouble()) << std::endl; //0.0,0.0
-        //std::cout << std::to_string(bitsForInt) << std::endl; //0
-        data +=
-                "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                        + std::to_string(
-                                a_c.getReceivedTimeStamp().toMicroseconds())
-                        + "',"
-                        + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(startAzimuth)
-                        + "'}]},{'varId':'endAzimuth','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(endAzimuth)
-                        + "'}]},{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(frontalDistance)
-                        + "'}]},{'varId':'rightdistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(rightDistance)
-                        + "'}]},{'varId':'leftdistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(leftDistance)
-                        + "'}]},{'varId':'reardistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(rearDistance)
-                        + "'}]}]}]}";
-//        std::cout << "Send velodyne32Lidar data" << std::endl;
-        sendMessage = true;
       }
 
-    } else if (a_c.getDataType()
-            == opendlv::data::environment::WGS84Coordinate::ID()) {
-      /**--------------APPLANIX GPS DATA---------------------**/
-      opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
-              opendlv::data::environment::WGS84Coordinate>();
-      double lat = 0.0;
-      double lon = 0.0;
-      if (m_gpsActive) {
-        lat = gps.getLatitude();
-        lon = gps.getLongitude();
-      }
-      data +=
-              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                      + std::to_string(
-                              a_c.getReceivedTimeStamp().toMicroseconds())
-                      + "',"
-                      + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
-                      + std::to_string(
-                              a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(lat)
-                      + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
-                      + std::to_string(
-                              a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(lon) + "'}]}]}]}";
-      sendMessage = true;
-//      std::cout << "Send applanixGps lat/lon data" << std::endl;
+      std::string data(
+          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+              + "',"
+              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(startAzimuth)
+              + "'}]},{'varId':'endAzimuth','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(endAzimuth)
+              + "'}]},{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(frontalDistance)
+              + "'}]},{'varId':'rightdistance','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(rightDistance)
+              + "'}]},{'varId':'leftdistance','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(leftDistance)
+              + "'}]},{'varId':'reardistance','measures': [{'mTimeStamp': '"
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+              + "','value':'" + std::to_string(rearDistance) + "'}]}]}]}");
 
-    } else if (a_c.getDataType() == opendlv::device::gps::pos::Grp1Data::ID()) {
-      /**--------------APPLANIX IMU DATA---------------------**/
-      opendlv::device::gps::pos::Grp1Data grp1 = a_c.getData<
-              opendlv::device::gps::pos::Grp1Data>();
-      //speed is translated into km/h (speed*3600/1000)
-      float speed = 0.0;
-      if (m_gpsActive) {
-        speed = grp1.getSpeed() * 3600 / 1000;
-      }
-      data +=
-              "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                      + std::to_string(
-                              a_c.getReceivedTimeStamp().toMicroseconds())
-                      + "',"
-                      + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
-                      + std::to_string(
-                              a_c.getSampleTimeStamp().toMicroseconds())
-                      + "','value':'" + std::to_string(speed) + "'}]}]}]}";
-      sendMessage = true;
-//      std::cout << "Send applanixGps speed data" << std::endl;
-    } else if (a_c.getDataType() == Voice::ID() && a_c.getSenderStamp() == 1) {
-      /**--------------V2VCAM DATA FROM EXTERNAL SYSTEMS---------------------**/
-      Voice voice = a_c.getData<Voice>();
-      if (voice.getType() == "cam") {
-        data +=
-                "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                        + std::to_string(
-                                a_c.getReceivedTimeStamp().toMicroseconds())
-                        + "',"
-                        + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(0)
-                        + "'}]},{'varId':'trafficFactor','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(3) + "'}]}]}]}";
-        sendMessage = true;
-      }
-
+//      std::cout << "Start azimuth " << std::to_string(startAzimuth)
+//          << std::endl;
+//      std::cout << "End azimuth " << std::to_string(endAzimuth) << std::endl;
+//
+//      std::cout << "Number of points " << numberOfPoints << std::endl;
+//      std::cout << "Number of points per layer " << numberOfPointsPerLayer
+//          << std::endl;
+//      std::cout << "Azimuth increment " << azimuthIncrement << std::endl;
+//      std::cout << distances << std::endl;
+//      std::cout << std::to_string(distances.length()) << std::endl; //39042
+//      std::cout << std::to_string(inIterator->ReadDouble()) << " - "
+//          << std::to_string(inIterator->ReadDouble()) << std::endl; //0.0,0.0
+//      std::cout << std::to_string(bitsForInt) << std::endl; //0
+//      std::cout << "Send velodyne32Lidar data" << std::endl;
+      forwardDataToKsam(data);
     }
   } else {
-    /**--------------IS SIMULATION---------------------**/
-    if (a_c.getDataType() == Voice::ID() && a_c.getSenderStamp() == 1) {
-      /**--------------V2VCAM/DENM DATA FROM EXTERNAL SYSTEMS---------------------**/
-      Voice voice = a_c.getData<Voice>();
+    std::cout << "Velodyne32 lidar off" << std::endl;
+  }
+}
+void KsamClient::processCanData(odcore::data::Container &a_c) {
+  if (m_canIsActive) {
+    opendlv::proxy::GroundSpeedReading vd = a_c.getData<
+        opendlv::proxy::GroundSpeedReading>();
+    // Assume vehicle is never in reverse
+    double speed = vd.getGroundSpeed();
+    if (speed < 0) {
+      speed = 0;
+    }
+    std::string data(
+        "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+            + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+            + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'can','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+            + "','value':'" + std::to_string(speed) + "'}]}]}]}");
+    //            std::cout << data << std::endl;
+    forwardDataToKsam(data);
+  } else {
+    std::cout << "CAN off" << std::endl;
+  }
+}
 
-      if (voice.getType() == "cam") {
-        m_v2vcam = true;
-      } else if (voice.getType() == "denm") {
-        //Denm message received from v1 to report by v0 to ksam
-        data += "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-                + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-                + "'," + "'context': [{'services': [";
-        if (m_laneFollower) {
-          data += "'laneFollower'";
-        }
-        data +=
-                "]}],'monitors': [{'monitorId':'V2VDenm_Event','measurements': [{'varId':'Event','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'CRASH'}]}]}]}";
-        sendMessage = true;
-      }
-
-    } else if (a_c.getSenderStamp() == 0) {
-      /**--------------SENSOR DATA FROM INTERNAL SYSTEMS---------------------**/
-
-      if (a_c.getDataType() == automotive::VehicleControl::ID()) {
-        /**--------------SELF-DRIVING/LANEFOLLOWER DATA---------------------**/
-        automotive::VehicleControl vc =
-                a_c.getData<automotive::VehicleControl>();
-        if (vc.getSpeed() > 0) {
-          m_laneFollower = true;
-        } else {
-          m_laneFollower = false;
-        }
-      }
-
-      data += "{'systemId' : 'openDlvMonitorv"
-              + std::to_string(a_c.getSenderStamp()) + "','timeStamp':'"
-              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "'," + "'context': [{'services': [";
-
-      if (m_laneFollower) {
-        data += "'laneFollower'";
-      }
-      data += "]}],'monitors': [";
-
-      if (a_c.getDataType() == V2vRequest::ID()) {
-        /**--------------V2VREQUEST DATA---------------------**/
-        V2vRequest vr = a_c.getData<V2vRequest>();
-        istringstream(vr.getData()) >> m_v2vcamRequest;
-
-      } else if (a_c.getDataType() == odcore::data::image::SharedImage::ID()) {
-        /**--------------ODSIMCAMERA DATA---------------------**/
-        odcore::data::image::SharedImage sharedImg = a_c.getData<
-                odcore::data::image::SharedImage>();
-        data +=
-                "{'monitorId':'odsimcamera','measurements': [{'varId':'imgSize','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(sharedImg.getSize())
-                        + "'}]}]}]}";
-        //		  	std::cout << data << std::endl;
-        sendMessage = true;
-      } else if (a_c.getDataType()
-              == automotive::miniature::SensorBoardData::ID()) {
-        /**--------------IRUS DATA---------------------**/
-        automotive::miniature::SensorBoardData sbd = a_c.getData<
-                automotive::miniature::SensorBoardData>();
-
-        double i_frontRightDistance = sbd.getValueForKey_MapOfDistances(0);
-        double i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
-        double i_rearRightDistance = sbd.getValueForKey_MapOfDistances(2);
-        double u_frontCenterDistance = sbd.getValueForKey_MapOfDistances(3);
-        double u_frontRightDistance = sbd.getValueForKey_MapOfDistances(4);
-        double u_rearRightDistance = sbd.getValueForKey_MapOfDistances(5);
-        data +=
-                "{'monitorId':'Infrared_FrontRight','measurements': [{'varId':'FrontRightDistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(i_frontRightDistance)
-                        + "'}]}]},";
-        if (m_v2vcam && m_v2vcamRequest) {
-          double v2v = sbd.getValueForKey_MapOfDistances(6);
-          data +=
-                  "{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
-                          + std::to_string(
-                                  a_c.getSampleTimeStamp().toMicroseconds())
-                          + "','value':'" + std::to_string(v2v) + "'}]}]},";
-        }
-        data +=
-                "{'monitorId':'Infrared_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(i_rearDistance)
-                        + "'}]}]},"
-                        + "{'monitorId':'Infrared_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(i_rearRightDistance)
-                        + "'}]}]},"
-                        + "{'monitorId':'UltraSonic_FrontCenter','measurements': [{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(u_frontCenterDistance)
-                        + "'}]}]},"
-                        + "{'monitorId':'UltraSonic_FrontRight','measurements': [{'varId':'FrontRightDistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(u_frontRightDistance)
-                        + "'}]}]},"
-                        + "{'monitorId':'UltraSonic_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(u_rearRightDistance)
-                        + "'}]}]}]}";
-        //		std::cout << data << std::endl;
-        sendMessage = true;
-      } else if (a_c.getDataType() == automotive::VehicleData::ID()) {
-        /**--------------ODSIMVEHICLE DATA---------------------**/
-        automotive::VehicleData vd = a_c.getData<automotive::VehicleData>();
-
-        // Assume vehicle is never in reverse
-        double speed = vd.getSpeed();
-        if (speed < 0) {
-          speed = 0;
-        }
-
-        double x = vd.getPosition().getP()[0];
-        double y = vd.getPosition().getP()[1];
-
-        data +=
-                "{'monitorId':'imuodsimcvehicle','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(speed)
-                        + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(x)
-                        + "'}]},{'varId':'latitude','measures': [{'mTimeStamp': '"
-                        + std::to_string(
-                                a_c.getSampleTimeStamp().toMicroseconds())
-                        + "','value':'" + std::to_string(y) + "'}]}]}]}";
-        //            std::cout << data << std::endl;
-        sendMessage = true;
-      }
+void KsamClient::processSimulationData(odcore::data::Container &a_c) {
+  if (a_c.getSenderStamp() == 0) { //All no Voice messages produced by the 2nd vehicle are ignored
+    if (a_c.getDataType() == automotive::VehicleControl::ID()) {
+      processVehicleControlData(a_c);
+    } else if (a_c.getDataType() == V2vRequest::ID()) {
+      V2vRequest vr = a_c.getData<V2vRequest>();
+      istringstream(vr.getData()) >> m_v2vcamRequest;
+    } else if (a_c.getDataType() == odcore::data::image::SharedImage::ID()) {
+      processSimCameraData(a_c);
+    } else if (a_c.getDataType()
+        == automotive::miniature::SensorBoardData::ID()) {
+      processIrusData(a_c);
+    } else if (a_c.getDataType() == automotive::VehicleData::ID()) {
+      processVehiclePositionData(a_c);
     }
   }
+}
 
-  if (sendMessage) {
-//    std::cout << data << std::endl;
-//    int socket_client = socket(AF_INET, SOCK_STREAM, 0);
-//
-//    struct sockaddr_in server;
-//    server.sin_family = AF_INET;
-//    server.sin_port = htons(8083);
-//    server.sin_addr.s_addr = inet_addr("127.0.0.1");
-//
-//    if (socket_client < 0) {
-//      std::cout << "Socket could not be created" << std::endl;
-//    }
-//
-//    if (connect(socket_client, (struct sockaddr *) &server, sizeof(server))
-//            < 0) {
-//      std::cout << "Connection failed due to port and ip problems" << std::endl;
-//    }
-//
-//    //        std::cout << data << std::endl;
-//    if (write(socket_client, data.c_str(), strlen(data.c_str())) < 0) {
-//      std::cout << "Data send failed" << std::endl;
-//    }
-//
-//    close(socket_client);
-
-    sendMessage = false;
+void KsamClient::processIrusData(odcore::data::Container &a_c) {
+  std::string data(
+      "{'systemId' : 'openDlvMonitorv" + std::to_string(a_c.getSenderStamp())
+          + "','timeStamp':'"
+          + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+          + "'context': [{'services': [");
+  if (m_laneFollowerIsActive) {
+    data += "'laneFollower'";
   }
+  data += "]}],'monitors': [";
 
+  automotive::miniature::SensorBoardData sbd = a_c.getData<
+      automotive::miniature::SensorBoardData>();
+  double i_frontRightDistance = sbd.getValueForKey_MapOfDistances(0);
+  double i_rearDistance = sbd.getValueForKey_MapOfDistances(1);
+  double i_rearRightDistance = sbd.getValueForKey_MapOfDistances(2);
+  double u_frontCenterDistance = sbd.getValueForKey_MapOfDistances(3);
+  double u_frontRightDistance = sbd.getValueForKey_MapOfDistances(4);
+  double u_rearRightDistance = sbd.getValueForKey_MapOfDistances(5);
+  data +=
+      "{'monitorId':'Infrared_FrontRight','measurements': [{'varId':'FrontRightDistance','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(i_frontRightDistance) + "'}]}]},";
+  if (m_v2vcamIsActive && m_v2vcamRequest) {
+    double v2v = sbd.getValueForKey_MapOfDistances(6);
+    data +=
+        "{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+            + "','value':'" + std::to_string(v2v) + "'}]}]},";
+  }
+  data +=
+      "{'monitorId':'Infrared_Rear','measurements': [{'varId':'RearDistance','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(i_rearDistance) + "'}]}]},"
+          + "{'monitorId':'Infrared_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(i_rearRightDistance) + "'}]}]},"
+          + "{'monitorId':'UltraSonic_FrontCenter','measurements': [{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(u_frontCenterDistance) + "'}]}]},"
+          + "{'monitorId':'UltraSonic_FrontRight','measurements': [{'varId':'FrontRightDistance','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(u_frontRightDistance) + "'}]}]},"
+          + "{'monitorId':'UltraSonic_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(u_rearRightDistance) + "'}]}]}]}";
+  //      std::cout << data << std::endl;
+  forwardDataToKsam(data);
+}
+
+void KsamClient::processSimCameraData(odcore::data::Container &a_c) {
+  std::string data(
+      "{'systemId' : 'openDlvMonitorv" + std::to_string(a_c.getSenderStamp())
+          + "','timeStamp':'"
+          + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+          + "'context': [{'services': [");
+  if (m_laneFollowerIsActive) {
+    data += "'laneFollower'";
+  }
+  data += "]}],'monitors': [";
+
+  odcore::data::image::SharedImage sharedImg = a_c.getData<
+      odcore::data::image::SharedImage>();
+  data +=
+      "{'monitorId':'odsimcamera','measurements': [{'varId':'imgSize','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(sharedImg.getSize())
+          + "'}]},{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(-1) + +"'}]}]}]}";
+  //          std::cout << data << std::endl;
+  forwardDataToKsam(data);
+}
+
+void KsamClient::processVehiclePositionData(odcore::data::Container &a_c) {
+  std::string data(
+      "{'systemId' : 'openDlvMonitorv" + std::to_string(a_c.getSenderStamp())
+          + "','timeStamp':'"
+          + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+          + "'context': [{'services': [");
+  if (m_laneFollowerIsActive) {
+    data += "'laneFollower'";
+  }
+  data += "]}],'monitors': [";
+
+  automotive::VehicleData vd = a_c.getData<automotive::VehicleData>();
+  double x = vd.getPosition().getP()[0];
+  double y = vd.getPosition().getP()[1];
+  // Assume vehicle is never in reverse
+  double speed = vd.getSpeed();
+  if (speed < 0) {
+    speed = 0;
+  }
+  data +=
+      "{'monitorId':'imuodsimcvehicle','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(speed)
+          + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(x)
+          + "'}]},{'varId':'latitude','measures': [{'mTimeStamp': '"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          + "','value':'" + std::to_string(y) + "'}]}]}]}";
+  //            std::cout << data << std::endl;
+  forwardDataToKsam(data);
+}
+
+void KsamClient::processVehicleControlData(odcore::data::Container &a_c) {
+  automotive::VehicleControl vc = a_c.getData<automotive::VehicleControl>();
+  if (vc.getSpeed() > 0) {
+    m_laneFollowerIsActive = true;
+  } else {
+    m_laneFollowerIsActive = false;
+  }
 }
 
 }

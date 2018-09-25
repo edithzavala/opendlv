@@ -1,5 +1,5 @@
-# docker-compose.yml - Composition of micro-services to run OpenDLV software.
-# Copyright (C) 2016 Christian Berger
+# docker-compose.yml - Composition of micro-services to run OpenDLV software and KSAM
+# Copyright (C) 2018 Christian Berger, Edith Zavala
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -41,30 +41,30 @@ services:
         command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamclient --id=3 --cid=${CID}"
 
  # microservice for adaptation-ksamserver
-    adaptation-ksamserver:
-        build: .
-        depends_on:
-            - odsupercomponent
-        working_dir: /opt/opendlv.data/
-        volumes:
-            - /tmp/.X11-unix:/tmp/.X11-unix
-            - .:/opt/opendlv.data
-        network_mode: host
-        ipc: host
-        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
+#    adaptation-ksamserver:
+#        build: .
+#        depends_on:
+#            - odsupercomponent
+#        working_dir: /opt/opendlv.data/
+#        volumes:
+#            - /tmp/.X11-unix:/tmp/.X11-unix
+#            - .:/opt/opendlv.data
+#        network_mode: host
+#        ipc: host
+#        command: "/opt/opendlv/bin/opendlv-logic-adaptation-ksamserver --id=4 --cid=${CID}"
 
-# # microservice for knowledge-v2vdenm -- use for the CRASH use case
-#    knowledge-v2vdenm0:
-#       build: .
-#       working_dir: /opt/opendlv.data/
-#       volumes:
-#           - /tmp/.X11-unix:/tmp/.X11-unix
-#           - .:/opt/opendlv.data
-#       network_mode: host
-#       ipc: host
-#       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=${CID}"
-#
-# # microservice for knowledge-v2vdenm -- use for the CRASH use case
+ # microservice for knowledge-v2vdenm -- use for the CRASH use case
+    knowledge-v2vdenm0:
+       build: .
+       working_dir: /opt/opendlv.data/
+       volumes:
+           - /tmp/.X11-unix:/tmp/.X11-unix
+           - .:/opt/opendlv.data
+       network_mode: host
+       ipc: host
+       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=${CID}"
+
+ # microservice for knowledge-v2vdenm -- use for the CRASH use case
 #    knowledge-v2vdenm1:
 #       build: .
 #       working_dir: /opt/opendlv.data/
@@ -73,9 +73,9 @@ services:
 #           - .:/opt/opendlv.data
 #       network_mode: host
 #       ipc: host
-#       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=${CID} --id=1"
-#
-# # microservice for knowledge-v2vcam
+#       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=${CID} --id=1" #second vehicle
+
+ # microservice for knowledge-v2vcam
 #    knowledge-v2vcam0:
 #        build: .
 #        working_dir: /opt/opendlv.data/
@@ -85,7 +85,7 @@ services:
 #        network_mode: host
 #        ipc: host
 #        command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vcam --cid=${CID}"
-#
+
 # # microservice for knowledge-v2vcam
 #    knowledge-v2vcam1:
 #        build: .
@@ -95,4 +95,4 @@ services:
 #            - .:/opt/opendlv.data
 #        network_mode: host
 #        ipc: host
-#        command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vcam --cid=${CID} --id=1"
+#        command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vcam --cid=${CID} --id=1" #second vehicle

@@ -1,0 +1,32 @@
+# docker-compose.yml - Composition of micro-services to run OpenDLV software and KSAM
+# Copyright (C) 2018 Christian Berger, Edith Zavala
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version  of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+# Date: 2016-10-13
+
+version: '2'
+
+services:
+
+# microservice for knowledge-v2vdenm -- use for the CRASH use case
+    knowledge-v2vdenm1:
+       build: .
+       working_dir: /opt/opendlv.data/
+       volumes:
+           - /tmp/.X11-unix:/tmp/.X11-unix
+           - .:/opt/opendlv.data
+       network_mode: host
+       ipc: host
+       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=${CID} --id=1" #second vehicle

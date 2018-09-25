@@ -30,33 +30,32 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-
 #include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
 #include "opendavinci/odcore/base/module/TimeTriggeredConferenceClientModule.h"
 #include "opendavinci/odcore/base/Mutex.h"
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
 
-
 namespace opendlv {
 namespace logic {
 namespace adaptation {
 
-class KsamServer :public odcore::base::module::TimeTriggeredConferenceClientModule {
+class KsamServer: public odcore::base::module::TimeTriggeredConferenceClientModule {
 public:
-    KsamServer(const int32_t &, char **);
-    KsamServer(const KsamServer &) = delete;
-    KsamServer &operator=(const KsamServer &) = delete;
- virtual ~KsamServer();
+  KsamServer(const int32_t &, char **);
+  KsamServer(const KsamServer &) = delete;
+  KsamServer &operator=(const KsamServer &) = delete;
+  virtual ~KsamServer();
 
- virtual void nextContainer(odcore::data::Container &c);
- odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
+  virtual void nextContainer(odcore::data::Container &c);
+  odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
 
 private:
- virtual void setUp();
- virtual void tearDown();
- void runServer();
-    bool m_simulation;
+  virtual void setUp();
+  virtual void tearDown();
+  void runServer();
+  void processAdaptation(char *);
+  bool m_simulation;
 };
 
 }
