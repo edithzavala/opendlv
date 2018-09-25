@@ -81,7 +81,7 @@ void KsamClient::setUp() {
   m_simulation = kv.getValue<bool>("adaptation-ksamclient.simulation");
   m_forwardData = kv.getValue<bool>("adaptation-ksamclient.forwardData");
 
-  m_laneFollowerIsActive = kv.getValue<bool>("global.lanefollower.active");
+//  m_laneFollowerIsActive = kv.getValue<bool>("global.lanefollower.active");
   m_v2vcamIsActive = kv.getValue<bool>("global.v2vcam.active");
   m_v2vdenmIsActive = kv.getValue<bool>("global.v2vdenm.active");
 
@@ -161,13 +161,17 @@ void KsamClient::processV2VData(odcore::data::Container &a_c) {
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
               + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "',"
-              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+              + "'," + "'context': [{'services': [");
+      if (m_laneFollowerIsActive) {
+        data += "'laneFollower'";
+      }
+      data +=
+          "]}],'monitors': [{'monitorId':'V2VCam_FrontCenter','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
               + "','value':'" + std::to_string(-1)
               + "'}]},{'varId':'trafficFactor','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(3) + "'}]}]}]}");
+              + "','value':'" + std::to_string(3) + "'}]}]}]}";
       forwardDataToKsam(data);
     } else if (voice.getType() == "denm") { //all denm messages are sent by the Truck
       std::string data(
@@ -245,6 +249,8 @@ void KsamClient::processRealData(odcore::data::Container &a_c) {
       == opendlv::data::environment::WGS84Coordinate::ID()
       || a_c.getDataType() == opendlv::device::gps::pos::Grp1Data::ID()) {
     processGpsData(a_c);
+  } else if (a_c.getDataType() == automotive::VehicleControl::ID()) {
+    processVehicleControlData(a_c);
   }
 }
 
@@ -256,12 +262,17 @@ void KsamClient::processCameraData(odcore::data::Container &a_c) {
     std::string data(
         "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
             + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
-            + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'axiscamera','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
+            + "'context': [{'services': [");
+    if (m_laneFollowerIsActive) {
+      data += "'laneFollower'";
+    }
+    data +=
+        "]}],'monitors': [{'monitorId':'axiscamera','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
             + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
             + "','value':'" + std::to_string(0)
             + "'}]},{'varId':'imgSize','measures': [{'mTimeStamp': '"
             + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-            + "','value':'" + std::to_string(imgSize) + "'}]}]}]}");
+            + "','value':'" + std::to_string(imgSize) + "'}]}]}]}";
 //        std::cout << "Send axiscamera data" << std::endl;
     forwardDataToKsam(data);
   } else {
@@ -279,13 +290,17 @@ void KsamClient::processGpsData(odcore::data::Container &a_c) {
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
               + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "',"
-              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
+              + "'," + "'context': [{'services': [");
+      if (m_laneFollowerIsActive) {
+        data += "'laneFollower'";
+      }
+      data +=
+          "]}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
               + "','value':'" + std::to_string(lat)
               + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(lon) + "'}]}]}]}");
+              + "','value':'" + std::to_string(lon) + "'}]}]}]}";
       forwardDataToKsam(data);
 //      std::cout << "Send applanixGps lat/lon data" << std::endl;
     } else {
@@ -295,10 +310,14 @@ void KsamClient::processGpsData(odcore::data::Container &a_c) {
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
               + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "',"
-              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+              + "'," + "'context': [{'services': [");
+      if (m_laneFollowerIsActive) {
+        data += "'laneFollower'";
+      }
+      data +=
+          "]}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(speed) + "'}]}]}]}");
+              + "','value':'" + std::to_string(speed) + "'}]}]}]}";
       forwardDataToKsam(data);
 //      std::cout << "Send applanixGps speed data" << std::endl;
     }
@@ -380,8 +399,12 @@ void KsamClient::processLidarData(odcore::data::Container &a_c) {
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
               + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "',"
-              + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
+              + "'," + "'context': [{'services': [");
+      if (m_laneFollowerIsActive) {
+        data += "'laneFollower'";
+      }
+      data +=
+          "]}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
               + "','value':'" + std::to_string(startAzimuth)
               + "'}]},{'varId':'endAzimuth','measures': [{'mTimeStamp': '"
@@ -398,7 +421,7 @@ void KsamClient::processLidarData(odcore::data::Container &a_c) {
               + "','value':'" + std::to_string(leftDistance)
               + "'}]},{'varId':'reardistance','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(rearDistance) + "'}]}]}]}");
+              + "','value':'" + std::to_string(rearDistance) + "'}]}]}]}";
 
 //      std::cout << "Start azimuth " << std::to_string(startAzimuth)
 //          << std::endl;
@@ -432,9 +455,14 @@ void KsamClient::processCanData(odcore::data::Container &a_c) {
     std::string data(
         "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
             + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
-            + "'context': [{'services': ['laneFollower']}],'monitors': [{'monitorId':'can','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+            + "'context': [{'services': [");
+    if (m_laneFollowerIsActive) {
+      data += "'laneFollower'";
+    }
+    data +=
+        "]}],'monitors': [{'monitorId':'can','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
             + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-            + "','value':'" + std::to_string(speed) + "'}]}]}]}");
+            + "','value':'" + std::to_string(speed) + "'}]}]}]}";
     //            std::cout << data << std::endl;
     forwardDataToKsam(data);
   } else {
@@ -571,8 +599,12 @@ void KsamClient::processVehicleControlData(odcore::data::Container &a_c) {
   automotive::VehicleControl vc = a_c.getData<automotive::VehicleControl>();
   if (vc.getSpeed() > 0) {
     m_laneFollowerIsActive = true;
-  } else {
+  } else if (m_simulation) {
     m_laneFollowerIsActive = false;
+  } else if (m_laneFollowerIsActive) {
+    m_laneFollowerIsActive = false;
+  } else {
+    m_laneFollowerIsActive = true;
   }
 }
 

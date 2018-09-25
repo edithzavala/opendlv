@@ -96,5 +96,5 @@ knowledge-v2vdenm:1.crash = 1
 
 ### CONFIGURATION KSAM
 adaptation-ksamclient:3.simulation = 0
-adaptation-ksamclient:3.forwardData = 0
+adaptation-ksamclient:3.forwardData = 1
 adaptation-ksamserver:4.simulation = 0

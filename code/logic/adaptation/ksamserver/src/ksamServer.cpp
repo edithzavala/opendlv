@@ -55,8 +55,8 @@ using namespace odcore::data;
  * @param a_argv Command line arguments.
  */
 KsamServer::KsamServer(const int32_t &argc, char **argv) :
-    TimeTriggeredConferenceClientModule(argc, argv,
-        "adaptation-ksamserver"), m_simulation(false) {
+    TimeTriggeredConferenceClientModule(argc, argv, "adaptation-ksamserver"), m_simulation(
+        false) {
 }
 
 KsamServer::~KsamServer() {
@@ -179,7 +179,7 @@ void KsamServer::processAdaptation(char *a_buffer) {
     }
   }
 
-  if (!m_simulation) {
+  if (!m_simulation) { //if simulation, request is sent by the IRUS system
     if (v2vAdapt.compare("add") == 0) {
       std::string request("1");
       V2vRequest nextMessage(request.size(), request);
