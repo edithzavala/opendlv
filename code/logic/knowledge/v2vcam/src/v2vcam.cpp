@@ -117,9 +117,9 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vCam::body() {
         }
       } else {
         if (m_printOutbound) {
-          std::cout << "Cam object -" << " Message Id: "
-              << std::to_string(GetMessageId()) << " Frontal distance: -1"
-              << " Traffic factor: 3" << std::endl;
+//          std::cout << "Cam object -" << " Message Id: "
+//              << std::to_string(GetMessageId()) << " Frontal distance: -1"
+//              << " Traffic factor: 3" << std::endl;
         }
       }
 

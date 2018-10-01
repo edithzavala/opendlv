@@ -19,6 +19,7 @@ global.v2vdenm.active = 1
 lanefollower.camera_id = 0 # select here the proper camera
 lanefollower.debug = 1 # set to 0 to disable any windows and further output
 lanefollower.simulation = 0
+lanefollower.tf = 6
 
 ### CONFIGURATION ODSUPERCOMPONENT
 odsupercomponent.pulseshift.shift = 10000 # (in microseconds)

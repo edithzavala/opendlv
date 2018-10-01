@@ -55,6 +55,7 @@ private:
   virtual void tearDown();
   void runServer();
   void processAdaptation(char *);
+  void processTrafficData(char *);
   bool m_simulation;
 };
 

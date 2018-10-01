@@ -38,8 +38,9 @@
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
-#include "MonitorAdaptation.h"
 
+#include "MonitorAdaptation.h"
+#include "TrafficData.h"
 #include "V2vRequest.h"
 #include "../include/ksamServer.hpp"
 
@@ -116,12 +117,36 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode KsamServer::body() {
     strftime(b, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec)); //change to localtime_r
     char currentTime[84] = "";
     sprintf(currentTime, "%s:%d", b, milli);
-    printf("%s - Receive adaptation request:", currentTime);
+//    printf("%s - Receive adaptation request:", currentTime);
     std::cout << buffer << std::endl;
-    processAdaptation(buffer);
+
+    char * mssgRec = strdup(buffer);
+    char * mssgType;
+    mssgType = strsep(&mssgRec, ":");
+    if (mssgType != NULL) { //1st tag
+      if (strcmp(mssgType, "TrafficFactor") == 0) {
+        processTrafficData(buffer);
+      } else {
+        processAdaptation(buffer);
+      }
+    }
     close(socketClient);
     //        sleep(1);
   }
+}
+
+void KsamServer::processTrafficData(char *a_buffer) {
+  char * recTF = strdup(a_buffer);
+  double tf;
+
+  if (strsep(&recTF, ":") != NULL) { //tf tag
+    tf = (uint32_t) atoi(strsep(&recTF, ":"));
+  }
+
+  TrafficData tData;
+  tData.setTrafficFactor(tf);
+  Container data = Container(tData);
+  getConference().send(data);
 }
 
 void KsamServer::processAdaptation(char *a_buffer) {

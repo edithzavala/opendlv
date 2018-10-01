@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef MONITORADAPTATION_H_
-#define MONITORADAPTATION_H_
+#ifndef TRAFFICDATA_H_
+#define TRAFFICDATA_H_
 
 #include <string>
 #include "opendavinci/odcore/opendavinci.h"
@@ -35,29 +35,25 @@ using namespace std;
  * This class can be used to produce some objects detected by
  * point providing sensors.
  */
-class MonitorAdaptation: public odcore::data::SerializableData {
+class TrafficData: public odcore::data::SerializableData {
 public:
-  MonitorAdaptation();
+  TrafficData();
 
   /**
    * Constructor.
    *
-   * @param position Position.
-   * @param rotation Rotation.
-   * @param velocity Velocity.
-   * @param acceleration Acceleration.
+   * @param double trafficFactor
    */
-  MonitorAdaptation(const int32_t &vehicleId, const string &monitorName,
-      const string &action);
+  TrafficData(const double &trafficFactor);
 
   /**
    * Copy constructor.
    *
    * @param obj Reference to an object of this class.
    */
-  MonitorAdaptation(const MonitorAdaptation &obj);
+  TrafficData(const TrafficData &obj);
 
-  virtual ~MonitorAdaptation();
+  virtual ~TrafficData();
 
   /**
    * Assignment operator.
@@ -65,7 +61,7 @@ public:
    * @param obj Reference to an object of this class.
    * @return Reference to this instance.
    */
-  MonitorAdaptation& operator=(const MonitorAdaptation &obj);
+  TrafficData& operator=(const TrafficData &obj);
 
   virtual ostream& operator<<(ostream &out) const;
   virtual istream& operator>>(istream &in);
@@ -81,17 +77,11 @@ public:
   const virtual string getLongName() const;
   const virtual string toString() const;
 
-  int32_t getVehicleId() const;
-  string getMonitorName() const;
-  string getAction() const;
-  void setVehicleId(const int32_t &vehicleId);
-  void setMonitorName(const string &monitorName);
-  void setAction(const string &action);
+  double getTrafficFactor() const;
+  void setTrafficFactor(const double &trafficFactor);
 
 private:
-  int32_t m_vehicleId;
-  string m_monitorName;
-  string m_action;
+  double m_trafficFactor;
 };
 
 }

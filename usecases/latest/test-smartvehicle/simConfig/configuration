@@ -216,6 +216,7 @@ lanefollower.simulation = 1
 lanefollower:1.camera_id = 1 # select here the proper camera
 lanefollower:1.debug = 1 # set to 0 to disable any windows and further output
 lanefollower:1.simulation = 1
+lanefollower.tf = 6
 
 ### CONFIGURATION V2VCAM
 knowledge-v2vcam.printOutbound = 1

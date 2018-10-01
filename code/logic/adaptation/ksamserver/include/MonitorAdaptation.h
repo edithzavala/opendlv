@@ -25,74 +25,73 @@
 
 #include "opendavinci/odcore/data/SerializableData.h"
 
-
 namespace opendlv {
 namespace logic {
 namespace adaptation {
 
-    using namespace std;
+using namespace std;
 
-    /**
-     * This class can be used to produce some objects detected by
-     * point providing sensors.
-     */
+/**
+ * This class can be used to produce some objects detected by
+ * point providing sensors.
+ */
 class MonitorAdaptation: public odcore::data::SerializableData {
-  public:
-    MonitorAdaptation();
+public:
+  MonitorAdaptation();
 
-    /**
-     * Constructor.
-     *
-     * @param position Position.
-     * @param rotation Rotation.
-     * @param velocity Velocity.
-     * @param acceleration Acceleration.
-     */
-    MonitorAdaptation(const int32_t &vehicleId, const string &monitorName,
-            const string &action);
+  /**
+   * Constructor.
+   *
+   * @param position Position.
+   * @param rotation Rotation.
+   * @param velocity Velocity.
+   * @param acceleration Acceleration.
+   */
+  MonitorAdaptation(const int32_t &vehicleId, const string &monitorName,
+      const string &action);
 
-    /**
-     * Copy constructor.
-     *
-     * @param obj Reference to an object of this class.
-     */
-    MonitorAdaptation(const MonitorAdaptation &obj);
+  /**
+   * Copy constructor.
+   *
+   * @param obj Reference to an object of this class.
+   */
+  MonitorAdaptation(const MonitorAdaptation &obj);
 
-    virtual ~MonitorAdaptation();
+  virtual ~MonitorAdaptation();
 
-    /**
-     * Assignment operator.
-     *
-     * @param obj Reference to an object of this class.
-     * @return Reference to this instance.
-     */
-    MonitorAdaptation& operator=(const MonitorAdaptation &obj);
+  /**
+   * Assignment operator.
+   *
+   * @param obj Reference to an object of this class.
+   * @return Reference to this instance.
+   */
+  MonitorAdaptation& operator=(const MonitorAdaptation &obj);
 
-    virtual ostream& operator<<(ostream &out) const;
-    virtual istream& operator>>(istream &in);
+  virtual ostream& operator<<(ostream &out) const;
+  virtual istream& operator>>(istream &in);
 
-    /**
-     * This method returns the message id.
-     *
-     * @return Message id.
-     */
-    static int32_t ID();
-    virtual int32_t getID() const;
-    virtual const string getShortName() const;
-    virtual const string getLongName() const;
-    virtual const string toString() const;
+  /**
+   * This method returns the message id.
+   *
+   * @return Message id.
+   */
+  static int32_t ID();
+  virtual int32_t getID() const;
+  const virtual string getShortName() const;
+  const virtual string getLongName() const;
+  const virtual string toString() const;
 
-    int32_t getVehicleId() const;
-    string getMonitorName() const;
-    string getAction() const;
-    void setVehicleId(const int32_t &vehicleId);
-    void setMonitorName(const string &monitorName);
-    void setAction(const string &action);
+  int32_t getVehicleId() const;
+  string getMonitorName() const;
+  string getAction() const;
+  void setVehicleId(const int32_t &vehicleId);
+  void setMonitorName(const string &monitorName);
+  void setAction(const string &action);
 
-  private:
-    int32_t m_vehicleId;
-    string m_monitorName;
-    string m_action;
+private:
+  int32_t m_vehicleId;
+  string m_monitorName;
+  string m_action;
 };
 
 }
