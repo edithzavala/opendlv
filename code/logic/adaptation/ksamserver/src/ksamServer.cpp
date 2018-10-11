@@ -167,8 +167,8 @@ void KsamServer::processAdaptation(char *a_buffer) {
 //    std::cout << "List of monitors to add: " << monitorsToAdd << std::endl;
     char * monitorIdToAdapt;
     while ((monitorIdToAdapt = strsep(&monitorsToAdd, ",")) != NULL) {
-//        std::cout << "OpenDLV-Monitor to add: " << monitorIdToAdapt
-//                << std::endl;
+      std::cout << "Send adaptation to monitor - add: " << monitorIdToAdapt
+          << std::endl;
       MonitorAdaptation mAdapt;
       mAdapt.setVehicleId(vehIdInt);
       mAdapt.setMonitorName(monitorIdToAdapt);
@@ -189,8 +189,8 @@ void KsamServer::processAdaptation(char *a_buffer) {
 //        << std::endl;
     char * monitorIdToAdapt;
     while ((monitorIdToAdapt = strsep(&monitorsToRemove, ",")) != NULL) {
-//        std::cout << "OpenDLV-Monitors to remove: " << monitorIdToAdapt
-//                << std::endl;
+      std::cout << "Send adaptation to monitor - remove: " << monitorIdToAdapt
+          << std::endl;
       MonitorAdaptation mAdapt;
       mAdapt.setVehicleId(vehIdInt);
       mAdapt.setMonitorName(monitorIdToAdapt);
