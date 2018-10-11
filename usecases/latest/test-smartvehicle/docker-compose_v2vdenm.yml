@@ -29,4 +29,4 @@ services:
            - .:/opt/opendlv.data
        network_mode: host
        ipc: host
-       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=${CID} --id=1" #second vehicle
+       command: "/opt/opendlv/bin/opendlv-logic-knowledge-v2vdenm --cid=${CID} --id=1 --freq=10" #second vehicle

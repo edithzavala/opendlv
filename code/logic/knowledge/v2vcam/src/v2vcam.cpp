@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
 #include "opendlv/data/environment/WGS84Coordinate.h"
@@ -128,8 +129,17 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vCam::body() {
       std::string bytesString(bytes.begin(), bytes.end());
       Voice nextMessage("cam", bytesString.size(), bytesString);
       odcore::data::Container c(nextMessage);
-      std::cout << "Send message type:" << std::to_string(c.getDataType())
+      timeval curTime;
+      gettimeofday(&curTime, NULL);
+      int milli = curTime.tv_usec / 1000;
+      char b[80];
+      strftime(b, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec)); //change to localtime_r
+      char currentTime[84] = "";
+      sprintf(currentTime, "%s:%d", b, milli);
+      std::cout << currentTime << " Send position and traffic info"
           << std::endl;
+//      printf("%s Send position and traffic info", currentTime);
+//      std::cout << "Send position and traffic info" << std::endl;
       getConference().send(c);
     }
   }
@@ -162,8 +172,18 @@ void V2vCam::nextContainer(odcore::data::Container &a_c) {
         opendlv::model::DynamicState>();
     ReadDynamicState(dynamicState);
   } else if (a_c.getDataType() == V2vRequest::ID()) {
-    if (a_c.getSenderStamp() == getIdentifier()) {
-      std::cout << "Request data/stop to other vehicles" << std::endl;
+    if (getIdentifier() == 0) {
+      timeval curTime;
+      gettimeofday(&curTime, NULL);
+      int milli = curTime.tv_usec / 1000;
+      char b[80];
+      strftime(b, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec)); //change to localtime_r
+      char currentTime[84] = "";
+      sprintf(currentTime, "%s:%d", b, milli);
+      std::cout << currentTime << " Request data/stop to other vehicles"
+          << std::endl;
+//      printf("%s Request data/stop to other vehicles", currentTime);
+//      std::cout << "Request data/stop to other vehicles" << std::endl;
     } else {
       V2vRequest vr = a_c.getData<V2vRequest>();
       ReadV2vRequest(vr);
@@ -181,11 +201,27 @@ void V2vCam::ReadEgoState(const opendlv::data::environment::EgoState &ego) {
 }
 
 void V2vCam::ReadV2vRequest(const V2vRequest &request) {
-  bool b;
-  istringstream(request.getData()) >> b;
-  m_active = b;
+  bool active;
+  istringstream(request.getData()) >> active;
+  m_active = active;
   if (m_debug) {
-    std::cout << "Receive request to send cam message?:" << b << std::endl;
+    timeval curTime;
+    gettimeofday(&curTime, NULL);
+    int milli = curTime.tv_usec / 1000;
+    char b[80];
+    strftime(b, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec)); //change to localtime_r
+    char currentTime[84] = "";
+    sprintf(currentTime, "%s:%d", b, milli);
+    if (active) {
+      std::cout << currentTime << " Receive request to send cam message"
+          << std::endl;
+//    printf("%s Receive request to send cam message", currentTime);
+    } else {
+      std::cout << currentTime << " Receive request to stop cam message"
+          << std::endl;
+//      printf("%s Receive request to stop cam message", currentTime);
+    }
+//    std::cout << "Receive request to send cam message?:" << b << std::endl;
   }
 }
 

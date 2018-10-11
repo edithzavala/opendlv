@@ -84,6 +84,14 @@ private:
   bool m_lidarIsActive;
   bool m_canIsActive;
 
+  bool m_cameraIsFaulty;
+  bool m_gpsIsFaulty;
+  bool m_lidarIsFaulty;
+  bool m_canIsFaulty;
+
+  int32_t m_routeId;
+  int32_t m_faultyI;
+  int32_t m_currentFaultyI;
 };
 
 }

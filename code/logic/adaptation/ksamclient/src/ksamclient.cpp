@@ -25,6 +25,7 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
@@ -32,6 +33,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <fstream>
 
 #include "opendavinci/odcore/wrapper/SharedMemoryFactory.h"
 #include "opendavinci/odcore/wrapper/SharedMemory.h"
@@ -65,7 +67,9 @@ KsamClient::KsamClient(const int32_t &a_argc, char **a_argv) :
         "adaptation-ksamclient"), m_initialized(false), m_simulation(false), m_v2vcamRequest(
         false), m_forwardData(false), m_laneFollowerIsActive(false), m_v2vcamIsActive(
         false), m_v2vdenmIsActive(false), m_cameraIsActive(false), m_gpsIsActive(
-        false), m_lidarIsActive(false), m_canIsActive(false)
+        false), m_lidarIsActive(false), m_canIsActive(false), m_cameraIsFaulty(
+        false), m_gpsIsFaulty(false), m_lidarIsFaulty(false), m_canIsFaulty(
+        false), m_routeId(1), m_faultyI(0), m_currentFaultyI(0)
 //    , m_mtx()
 //    , m_debug()
 {
@@ -90,6 +94,12 @@ void KsamClient::setUp() {
     m_gpsIsActive = kv.getValue<bool>("global.applanix.active");
     m_lidarIsActive = kv.getValue<bool>("global.velodyne32.active");
     m_canIsActive = kv.getValue<bool>("global.xc90.active");
+
+    m_cameraIsFaulty = kv.getValue<bool>("global.camera-axis.faulty");
+    m_gpsIsFaulty = kv.getValue<bool>("global.applanix.faulty");
+    m_lidarIsFaulty = kv.getValue<bool>("global.velodyne32.faulty");
+    m_canIsFaulty = kv.getValue<bool>("global.xc90.faulty");
+    m_faultyI = kv.getValue<int32_t>("global.iterations.faulty");
   }
 
 //  m_debug = (kv.getValue<int32_t>("logic-adaptation-ksam.debug") == 1);
@@ -105,8 +115,6 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
     processV2VData(a_c);
   } else if (!m_simulation) {
     if (a_c.getDataType() == MonitorAdaptation::ID()) {
-      std::cout << a_c.getReceivedTimeStamp().getYYYYMMDD_HHMMSSms()
-          << "adaptation received" << std::endl;
       MonitorAdaptation ma = a_c.getData<MonitorAdaptation>();
       processAdaptation(ma);
     } else {
@@ -118,50 +126,71 @@ void KsamClient::nextContainer(odcore::data::Container &a_c) {
 }
 
 void KsamClient::processAdaptation(MonitorAdaptation &a_ma) {
+  timeval curTime;
+  gettimeofday(&curTime, NULL);
+  int milli = curTime.tv_usec / 1000;
+  char b[80];
+  strftime(b, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec)); //change to localtime_r
+  char currentTime[84] = "";
+  sprintf(currentTime, "%s:%d", b, milli);
   if (a_ma.getMonitorName().compare("axiscamera") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      std::cout << "Axis camera added" << std::endl;
+      printf("%s Axis camera added", currentTime);
+//      std::cout << "Axis camera added" << std::endl;
       m_cameraIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
-      std::cout << "Axis camera removed" << std::endl;
+      printf("%s Axis camera removed", currentTime);
+//      std::cout << "Axis camera removed" << std::endl;
       m_cameraIsActive = false;
     }
   } else if (a_ma.getMonitorName().compare("applanixGps") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      std::cout << "Applanix gps added" << std::endl;
+      printf("%s Applanix gps added", currentTime);
+//      std::cout << "Applanix gps added" << std::endl;
       m_gpsIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
       m_gpsIsActive = false;
-      std::cout << "Applanix gps removed" << std::endl;
+      printf("%s Applanix gps removed", currentTime);
+//      std::cout << "Applanix gps removed" << std::endl;
     }
   } else if (a_ma.getMonitorName().compare("velodyne32Lidar") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      std::cout << "Velodyne32 lidar added" << std::endl;
+      printf("%s Velodyne32 lidar added", currentTime);
+//      std::cout << "Velodyne32 lidar added" << std::endl;
       m_lidarIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
+      printf("%s Velodyne32 lidar removed", currentTime);
+      //      std::cout << "Velodyne32 lidar removed" << std::endl;
       m_lidarIsActive = false;
-      std::cout << "Velodyne32 lidar removed" << std::endl;
     }
   } else if (a_ma.getMonitorName().compare("can") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      std::cout << "CAN added" << std::endl;
+      printf("%s CAN added", currentTime);
+//      std::cout << "CAN added" << std::endl;
       m_canIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
+      printf("%s CAN removed", currentTime);
+//      std::cout << "CAN removed" << std::endl;
       m_canIsActive = false;
-      std::cout << "CAN removed" << std::endl;
     }
   }
 }
 
 void KsamClient::processV2VData(odcore::data::Container &a_c) {
   Voice voice = a_c.getData<Voice>();
+  int32_t trafficF;
+  if (m_routeId == 1) {
+    trafficF = 6;
+  } else {
+    trafficF = -2;
+  }
   if (!m_simulation) {
     //m_v2vcamIsActive, m_v2vdenmIsActive not revised. If a message is received we assume they has been activated.
     if (voice.getType() == "cam") { //all cam messages are sent by the Truck
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "'," + "'context': [{'services': [");
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
+              + "'context': [{'services': [");
       if (m_laneFollowerIsActive) {
         data += "'laneFollower'";
       }
@@ -171,13 +200,13 @@ void KsamClient::processV2VData(odcore::data::Container &a_c) {
               + "','value':'" + std::to_string(-1)
               + "'}]},{'varId':'trafficFactor','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(3) + "'}]}]}]}";
+              + "','value':'" + std::to_string(trafficF) + "'}]}]}]}";
       forwardDataToKsam(data);
     } else if (voice.getType() == "denm") { //all denm messages are sent by the Truck
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "'," + "'context': [{'services': [");
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
+              + "'context': [{'services': [");
       if (m_laneFollowerIsActive) {
         data += "'laneFollower'";
       }
@@ -194,8 +223,8 @@ void KsamClient::processV2VData(odcore::data::Container &a_c) {
     } else if (voice.getType() == "denm") { //all denm messages are sent by the 2nd simvehicle
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "'," + "'context': [{'services': [");
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
+              + "'context': [{'services': [");
       if (m_laneFollowerIsActive) {
         data += "'laneFollower'";
       }
@@ -258,10 +287,22 @@ void KsamClient::processCameraData(odcore::data::Container &a_c) {
   if (m_cameraIsActive) {
     opendlv::proxy::ImageReading is =
         a_c.getData<opendlv::proxy::ImageReading>();
-    uint32_t imgSize = is.getWidth() * is.getHeight();
+    double imgSize;
+    double frontaldistance;
+    if (m_cameraIsFaulty && m_currentFaultyI >= m_faultyI) {
+      imgSize = -1;
+      frontaldistance = -2;
+    } else {
+      imgSize = is.getWidth() * is.getHeight();
+      frontaldistance = -1;
+      if (m_cameraIsFaulty) {
+        m_currentFaultyI++;
+      }
+    }
+
     std::string data(
         "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-            + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
             + "'context': [{'services': [");
     if (m_laneFollowerIsActive) {
       data += "'laneFollower'";
@@ -269,60 +310,71 @@ void KsamClient::processCameraData(odcore::data::Container &a_c) {
     data +=
         "]}],'monitors': [{'monitorId':'axiscamera','measurements': [{'varId':'frontaldistance','measures': [{'mTimeStamp': '"
             + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-            + "','value':'" + std::to_string(0)
+            + "','value':'" + std::to_string(frontaldistance)
             + "'}]},{'varId':'imgSize','measures': [{'mTimeStamp': '"
             + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
             + "','value':'" + std::to_string(imgSize) + "'}]}]}]}";
 //        std::cout << "Send axiscamera data" << std::endl;
     forwardDataToKsam(data);
   } else {
-    std::cout << "Axis camera off" << std::endl;
+//    std::cout << "Axis camera off" << std::endl;
   }
 }
 void KsamClient::processGpsData(odcore::data::Container &a_c) {
   if (m_gpsIsActive) {
-    if (a_c.getDataType()
-        == opendlv::data::environment::WGS84Coordinate::ID()) {
-      opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
-          opendlv::data::environment::WGS84Coordinate>();
-      double lat = gps.getLatitude();
-      double lon = gps.getLongitude();
-      std::string data(
-          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "'," + "'context': [{'services': [");
-      if (m_laneFollowerIsActive) {
-        data += "'laneFollower'";
-      }
-      data +=
-          "]}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
-              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(lat)
-              + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
-              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(lon) + "'}]}]}]}";
-      forwardDataToKsam(data);
-//      std::cout << "Send applanixGps lat/lon data" << std::endl;
+//    if (a_c.getDataType()
+//        == opendlv::data::environment::WGS84Coordinate::ID()) {
+    opendlv::data::environment::WGS84Coordinate gps = a_c.getData<
+        opendlv::data::environment::WGS84Coordinate>();
+    double lat;
+    double lon;
+    if (m_gpsIsFaulty && (m_currentFaultyI >= m_faultyI)) {
+      lat = -1;
+      lon = -1;
     } else {
-      opendlv::device::gps::pos::Grp1Data grp1 = a_c.getData<
-          opendlv::device::gps::pos::Grp1Data>();
-      float speed = grp1.getSpeed() * 3600 / 1000; //speed is translated into km/h (speed*3600/1000)
-      std::string data(
-          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "'," + "'context': [{'services': [");
-      if (m_laneFollowerIsActive) {
-        data += "'laneFollower'";
+      lat = gps.getLatitude();
+      lon = gps.getLongitude();
+      if (m_gpsIsFaulty) {
+        m_currentFaultyI++;
       }
-      data +=
-          "]}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
-              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
-              + "','value':'" + std::to_string(speed) + "'}]}]}]}";
-      forwardDataToKsam(data);
-//      std::cout << "Send applanixGps speed data" << std::endl;
     }
+
+    std::string data(
+        "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
+            + "'context': [{'services': [");
+    if (m_laneFollowerIsActive) {
+      data += "'laneFollower'";
+    }
+    data +=
+        "]}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'latitude','measures': [{'mTimeStamp': '"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+            + "','value':'" + std::to_string(lat)
+            + "'}]},{'varId':'longitude','measures': [{'mTimeStamp': '"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+            + "','value':'" + std::to_string(lon) + "'}]}]}]}";
+    forwardDataToKsam(data);
+//      std::cout << "Send applanixGps lat/lon data" << std::endl;
+//    } else {
+//      opendlv::device::gps::pos::Grp1Data grp1 = a_c.getData<
+//          opendlv::device::gps::pos::Grp1Data>();
+//      float speed = grp1.getSpeed() * 3600 / 1000; //speed is translated into km/h (speed*3600/1000)
+//      std::string data(
+//          "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
+//              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
+//              + "'context': [{'services': [");
+//      if (m_laneFollowerIsActive) {
+//        data += "'laneFollower'";
+//      }
+//      data +=
+//          "]}],'monitors': [{'monitorId':'applanixGps','measurements': [{'varId':'speed','measures': [{'mTimeStamp': '"
+//              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+//              + "','value':'" + std::to_string(speed) + "'}]}]}]}";
+//      forwardDataToKsam(data);
+//      std::cout << "Send applanixGps speed data" << std::endl;
+//    }
   } else {
-    std::cout << "Applanix gps off" << std::endl;
+//    std::cout << "Applanix gps off" << std::endl;
   }
 }
 void KsamClient::processLidarData(odcore::data::Container &a_c) {
@@ -333,35 +385,69 @@ void KsamClient::processLidarData(odcore::data::Container &a_c) {
     int8_t numberOfLayersInMessage = pc.getEntriesPerAzimuth();
 
     if (numberOfLayersInMessage == 9) {
-      std::string distances = pc.getDistances();
-      double endAzimuth = pc.getEndAzimuth();
-      double startAzimuth = pc.getStartAzimuth();
+      std::string distances;
+      string distancesAll;
+      double endAzimuth;
+      double startAzimuth;
       //      int8_t numberOfBitsForIntensity = pc.getNumberOfBitsForIntensity(); // 0
-      double frontalDistance = 0.0;
-      double rearDistance = 0.0;
-      double rightDistance = 0.0;
-      double leftDistance = 0.0;
-      std::vector<unsigned char> distancesData(distances.begin(),
-          distances.end());
-      std::shared_ptr<const Buffer> buffer(new Buffer(distancesData));
-      std::shared_ptr<Buffer::Iterator> inIterator = buffer->GetIterator();
-      //Long and little endian reverser
-      inIterator->ItReversed();
-      int numberOfPoints = buffer->GetSize() / 2;
-      int numberOfPointsPerLayer = numberOfPoints / numberOfLayersInMessage;
-      double azimuthIncrement = (endAzimuth - startAzimuth)
-          / numberOfPointsPerLayer;
-      double azimuth = startAzimuth;
-      double approxNinetyDegrees = startAzimuth
-          + ((numberOfPointsPerLayer / 4) * azimuthIncrement);
-      double approxOneHundredEightyDegrees = startAzimuth
-          + ((numberOfPointsPerLayer / 2) * azimuthIncrement);
-      double approxTwoHundredSeventyDegrees = startAzimuth
-          + ((numberOfPointsPerLayer / 4) * 3 * azimuthIncrement);
+      double frontalDistance;
+      double rearDistance;
+      double rightDistance;
+      double leftDistance;
 
-      for (int i = 0; i < numberOfPoints; i++) {
-        short distanceTemp = inIterator->ReadShort();
-        if (i > numberOfPointsPerLayer * 3 && i <= numberOfPointsPerLayer * 4) {
+      if (m_lidarIsFaulty && (m_currentFaultyI >= m_faultyI)) {
+        endAzimuth = -1;
+        startAzimuth = -1;
+        frontalDistance = -2;
+        rearDistance = -2;
+        rightDistance = -2;
+        leftDistance = -2;
+      } else {
+        distances = pc.getDistances();
+        endAzimuth = pc.getEndAzimuth();
+        startAzimuth = pc.getStartAzimuth();
+        frontalDistance = 0.0;
+        rearDistance = 0.0;
+        rightDistance = 0.0;
+        leftDistance = 0.0;
+        if (m_lidarIsFaulty) {
+          m_currentFaultyI++;
+        }
+
+        std::vector<unsigned char> distancesData(distances.begin(),
+            distances.end());
+        std::shared_ptr<const Buffer> buffer(new Buffer(distancesData));
+        std::shared_ptr<Buffer::Iterator> inIterator = buffer->GetIterator();
+        //Long and little endian reverser
+        inIterator->ItReversed();
+        int numberOfPoints = buffer->GetSize() / 2;
+//        std::cout << "numberOfPoints: " << std::to_string(numberOfPoints)
+//            << std::endl;
+
+        int numberOfPointsPerLayer = numberOfPoints / numberOfLayersInMessage;
+//        std::cout << "numberOfPointsPerLayer: "
+//            << std::to_string(numberOfPointsPerLayer)
+//            << std::endl;
+
+        double azimuthIncrement = (endAzimuth - startAzimuth)
+            / numberOfPointsPerLayer;
+        double azimuth = startAzimuth;
+
+        double approxNinetyDegrees = startAzimuth
+            + ((numberOfPointsPerLayer / 4) * azimuthIncrement);
+        double approxOneHundredEightyDegrees = startAzimuth
+            + ((numberOfPointsPerLayer / 2) * azimuthIncrement);
+        double approxTwoHundredSeventyDegrees = startAzimuth
+            + ((numberOfPointsPerLayer / 4) * 3 * azimuthIncrement);
+
+        for (int i = 0; i < numberOfPoints; i++) {
+          short distanceTemp = inIterator->ReadShort();
+          distancesAll += std::to_string(distanceTemp) + ";";
+//          std::cout << "distanceTemp: " << numberOfPointsPerLayer << std::endl;
+
+          /***layer 3-4 of buffer corresponds to layer 14 of 32***/
+          if (i > numberOfPointsPerLayer * 3
+              && i <= numberOfPointsPerLayer * 4) {
 //            double verticalAngleLayer14 = -12.0;
 //            double xyDistance = distanceTemp
 //                    * cos(verticalAngleLayer14 * PI / 180.0);
@@ -369,40 +455,57 @@ void KsamClient::processLidarData(odcore::data::Container &a_c) {
 //            double y = xyDistance * cos(azimuth * PI / 180.0);
 //            double z = distanceTemp * sin(verticalAngleLayer14 * PI / 180.0);
 
-          if (azimuth <= startAzimuth) {
-            frontalDistance = distanceTemp;
+            if (azimuth <= startAzimuth) {
+              frontalDistance = distanceTemp;
 //              std::cout << "Distance front: " << frontalDistance << " azimuth: "
-//                      << azimuth << std::endl;
-          } else if (azimuth <= (approxNinetyDegrees + azimuthIncrement)
-              && azimuth >= approxNinetyDegrees) {
-            rightDistance = distanceTemp;
+//                  << azimuth << std::endl;
+            } else if (azimuth <= (approxNinetyDegrees + azimuthIncrement)
+                && azimuth >= approxNinetyDegrees) {
+              rightDistance = distanceTemp;
 //              std::cout << "Distance right: " << rightDistance << " azimuth: "
-//                      << azimuth << std::endl;
-          } else if (azimuth
-              <= (approxOneHundredEightyDegrees + azimuthIncrement)
-              && azimuth >= approxOneHundredEightyDegrees) {
-            rearDistance = distanceTemp;
+//                  << azimuth << std::endl;
+            } else if (azimuth
+                <= (approxOneHundredEightyDegrees + azimuthIncrement)
+                && azimuth >= approxOneHundredEightyDegrees) {
+              rearDistance = distanceTemp;
 //              std::cout << "Distance rear: " << rearDistance << " azimuth: "
-//                      << azimuth << std::endl;
-          } else if (azimuth
-              <= (approxTwoHundredSeventyDegrees + azimuthIncrement)
-              && azimuth >= approxTwoHundredSeventyDegrees) {
-            leftDistance = distanceTemp;
+//                  << azimuth << std::endl;
+            } else if (azimuth
+                <= (approxTwoHundredSeventyDegrees + azimuthIncrement)
+                && azimuth >= approxTwoHundredSeventyDegrees) {
+              leftDistance = distanceTemp;
 //              std::cout << "Distance left: " << leftDistance << " azimuth: "
-//                      << azimuth << std::endl;
+//                  << azimuth << std::endl;
+            }
+            azimuth += azimuthIncrement;
           }
-          azimuth += azimuthIncrement;
-        }
 
+        }
       }
+
+      ofstream myfile;
+      myfile.open("allDistancesStringLog.txt", std::ios_base::app);
+      myfile << "Sampled at "
+          << std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+          << " | Received at "
+          << std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+          << ": all distances string: " << distancesAll << "\n";
+      myfile.close();
+
+//      std::cout << "Sampled at "
+//          << std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+//          << " | Received at "
+//          << std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
+//          << ": all distances string: " << distancesAll << std::endl;
 
       std::string data(
           "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-              + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds())
-              + "'," + "'context': [{'services': [");
+              + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
+              + "'context': [{'services': [");
       if (m_laneFollowerIsActive) {
         data += "'laneFollower'";
       }
+
       data +=
           "]}],'monitors': [{'monitorId':'velodyne32Lidar','measurements': [{'varId':'startAzimuth','measures': [{'mTimeStamp': '"
               + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
@@ -440,7 +543,7 @@ void KsamClient::processLidarData(odcore::data::Container &a_c) {
       forwardDataToKsam(data);
     }
   } else {
-    std::cout << "Velodyne32 lidar off" << std::endl;
+//    std::cout << "Velodyne32 lidar off" << std::endl;
   }
 }
 void KsamClient::processCanData(odcore::data::Container &a_c) {
@@ -448,13 +551,22 @@ void KsamClient::processCanData(odcore::data::Container &a_c) {
     opendlv::proxy::GroundSpeedReading vd = a_c.getData<
         opendlv::proxy::GroundSpeedReading>();
     // Assume vehicle is never in reverse
-    double speed = vd.getGroundSpeed();
-    if (speed < 0) {
-      speed = 0;
+    double speed;
+    if (m_canIsFaulty && (m_currentFaultyI >= m_faultyI)) {
+      speed = -1;
+    } else {
+      speed = vd.getGroundSpeed();
+      if (speed < 0) {
+        speed = 0;
+      }
+      if (m_canIsFaulty) {
+        m_currentFaultyI++;
+      }
     }
+
     std::string data(
         "{'systemId' : 'openDlvMonitorv0','timeStamp':'"
-            + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+            + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
             + "'context': [{'services': [");
     if (m_laneFollowerIsActive) {
       data += "'laneFollower'";
@@ -466,7 +578,7 @@ void KsamClient::processCanData(odcore::data::Container &a_c) {
     //            std::cout << data << std::endl;
     forwardDataToKsam(data);
   } else {
-    std::cout << "CAN off" << std::endl;
+//    std::cout << "CAN off" << std::endl;
   }
 }
 
@@ -492,7 +604,7 @@ void KsamClient::processIrusData(odcore::data::Container &a_c) {
   std::string data(
       "{'systemId' : 'openDlvMonitorv" + std::to_string(a_c.getSenderStamp())
           + "','timeStamp':'"
-          + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
           + "'context': [{'services': [");
   if (m_laneFollowerIsActive) {
     data += "'laneFollower'";
@@ -534,7 +646,7 @@ void KsamClient::processIrusData(odcore::data::Container &a_c) {
           + "{'monitorId':'UltraSonic_RearRight','measurements': [{'varId':'RearRightDistance','measures': [{'mTimeStamp': '"
           + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
           + "','value':'" + std::to_string(u_rearRightDistance) + "'}]}]}]}";
-  //      std::cout << data << std::endl;
+//      std::cout << data << std::endl;
   forwardDataToKsam(data);
 }
 
@@ -542,7 +654,7 @@ void KsamClient::processSimCameraData(odcore::data::Container &a_c) {
   std::string data(
       "{'systemId' : 'openDlvMonitorv" + std::to_string(a_c.getSenderStamp())
           + "','timeStamp':'"
-          + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
           + "'context': [{'services': [");
   if (m_laneFollowerIsActive) {
     data += "'laneFollower'";
@@ -558,7 +670,7 @@ void KsamClient::processSimCameraData(odcore::data::Container &a_c) {
           + "'}]},{'varId':'FrontCenterDistance','measures': [{'mTimeStamp': '"
           + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
           + "','value':'" + std::to_string(-1) + +"'}]}]}]}";
-  //          std::cout << data << std::endl;
+//          std::cout << data << std::endl;
   forwardDataToKsam(data);
 }
 
@@ -566,7 +678,7 @@ void KsamClient::processVehiclePositionData(odcore::data::Container &a_c) {
   std::string data(
       "{'systemId' : 'openDlvMonitorv" + std::to_string(a_c.getSenderStamp())
           + "','timeStamp':'"
-          + std::to_string(a_c.getReceivedTimeStamp().toMicroseconds()) + "',"
+          + std::to_string(a_c.getSampleTimeStamp().toMicroseconds()) + "',"
           + "'context': [{'services': [");
   if (m_laneFollowerIsActive) {
     data += "'laneFollower'";
@@ -576,7 +688,7 @@ void KsamClient::processVehiclePositionData(odcore::data::Container &a_c) {
   automotive::VehicleData vd = a_c.getData<automotive::VehicleData>();
   double x = vd.getPosition().getP()[0];
   double y = vd.getPosition().getP()[1];
-  // Assume vehicle is never in reverse
+// Assume vehicle is never in reverse
   double speed = vd.getSpeed();
   if (speed < 0) {
     speed = 0;
@@ -591,7 +703,7 @@ void KsamClient::processVehiclePositionData(odcore::data::Container &a_c) {
           + "'}]},{'varId':'latitude','measures': [{'mTimeStamp': '"
           + std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
           + "','value':'" + std::to_string(y) + "'}]}]}]}";
-  //            std::cout << data << std::endl;
+//            std::cout << data << std::endl;
   forwardDataToKsam(data);
 }
 
@@ -599,6 +711,7 @@ void KsamClient::processVehicleControlData(odcore::data::Container &a_c) {
   automotive::VehicleControl vc = a_c.getData<automotive::VehicleControl>();
   if (vc.getSpeed() > 0) {
     m_laneFollowerIsActive = true;
+    m_routeId = vc.getSpeed();
   } else if (m_simulation) {
     m_laneFollowerIsActive = false;
   } else if (m_laneFollowerIsActive) {

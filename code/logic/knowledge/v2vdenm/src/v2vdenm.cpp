@@ -18,6 +18,7 @@
  */
 
 #include <chrono>
+#include <ctime>
 #include <ctype.h>
 #include <cstring>
 #include <cmath>
@@ -26,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
 
@@ -91,8 +93,18 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode V2vDenm::body() {
       std::string bytesString(bytes.begin(), bytes.end());
       Voice nextMessage("denm", bytesString.size(), bytesString);
       odcore::data::Container c(nextMessage);
-      std::cout << "Send message type " << std::to_string(c.getDataType())
-          << ",CRASH!" << std::endl;
+
+      timeval curTime;
+      gettimeofday(&curTime, NULL);
+      int milli = curTime.tv_usec / 1000;
+      char b[80];
+      strftime(b, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec)); //change to localtime_r
+      char currentTime[84] = "";
+      sprintf(currentTime, "%s:%d", b, milli);
+//      printf("%s Send ROAD EVENT message (CRASH)", currentTime);
+      std::cout << currentTime << " Send ROAD EVENT message (CRASH)"
+          << std::endl;
+//      std::cout << std::to_string(c.getDataType()) << std::endl;
       getConference().send(c);
       m_crash = false;
     }
@@ -107,7 +119,18 @@ void V2vDenm::nextContainer(odcore::data::Container &a_c) {
       && !(a_c.getSenderStamp() == getIdentifier())) {
     Voice voice = a_c.getData<Voice>();
     if (voice.getType() == "denm") {
-      std::cout << "Process denm event message (crash)" << std::endl;
+      timeval curTime;
+      gettimeofday(&curTime, NULL);
+      int milli = curTime.tv_usec / 1000;
+      char b[80];
+      strftime(b, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec)); //change to localtime_r
+      char currentTime[84] = "";
+      sprintf(currentTime, "%s:%d", b, milli);
+      std::cout << currentTime << " Send ROAD EVENT message (CRASH)"
+          << std::endl;
+//      printf("%s Process ROAD EVENT message (CRASH)", currentTime);
+//      std::cout << std::to_string(a_c.getSampleTimeStamp().toMicroseconds())
+//          << " Process denm event message (crash)" << std::endl;
     }
   }
 //  }
