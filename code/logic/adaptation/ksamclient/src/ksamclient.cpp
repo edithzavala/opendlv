@@ -135,42 +135,48 @@ void KsamClient::processAdaptation(MonitorAdaptation &a_ma) {
   sprintf(currentTime, "%s:%d", b, milli);
   if (a_ma.getMonitorName().compare("axiscamera") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      printf("%s Axis camera added", currentTime);
-//      std::cout << "Axis camera added" << std::endl;
+//      printf("%s Axis camera added", currentTime);
+      std::cout << std::to_string(currentTime) << " Axis camera added"
+          << std::endl;
       m_cameraIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
-      printf("%s Axis camera removed", currentTime);
-//      std::cout << "Axis camera removed" << std::endl;
+//      printf("%s Axis camera removed", currentTime);
+      std::cout << std::to_string(currentTime) << " Axis camera removed"
+          << std::endl;
       m_cameraIsActive = false;
     }
   } else if (a_ma.getMonitorName().compare("applanixGps") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      printf("%s Applanix gps added", currentTime);
-//      std::cout << "Applanix gps added" << std::endl;
+//      printf("%s Applanix gps added", currentTime);
+      std::cout << std::to_string(currentTime) << " Applanix gps added"
+          << std::endl;
       m_gpsIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
       m_gpsIsActive = false;
-      printf("%s Applanix gps removed", currentTime);
-//      std::cout << "Applanix gps removed" << std::endl;
+//      printf("%s Applanix gps removed", currentTime);
+      std::cout << std::to_string(currentTime) << " Applanix gps removed"
+          << std::endl;
     }
   } else if (a_ma.getMonitorName().compare("velodyne32Lidar") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      printf("%s Velodyne32 lidar added", currentTime);
-//      std::cout << "Velodyne32 lidar added" << std::endl;
+//      printf("%s Velodyne32 lidar added", currentTime);
+      std::cout << std::to_string(currentTime) << " Velodyne32 lidar added"
+          << std::endl;
       m_lidarIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
-      printf("%s Velodyne32 lidar removed", currentTime);
-      //      std::cout << "Velodyne32 lidar removed" << std::endl;
+//      printf("%s Velodyne32 lidar removed", currentTime);
+      std::cout << std::to_string(currentTime) << " Velodyne32 lidar removed"
+          << std::endl;
       m_lidarIsActive = false;
     }
   } else if (a_ma.getMonitorName().compare("can") == 0) {
     if (a_ma.getAction().compare("add") == 0) {
-      printf("%s CAN added", currentTime);
-//      std::cout << "CAN added" << std::endl;
+//      printf("%s CAN added", currentTime);
+      std::cout << std::to_string(currentTime) << " CAN added" << std::endl;
       m_canIsActive = true;
     } else if (a_ma.getAction().compare("remove") == 0) {
-      printf("%s CAN removed", currentTime);
-//      std::cout << "CAN removed" << std::endl;
+//      printf("%s CAN removed", currentTime);
+      std::cout << std::to_string(currentTime) << " CAN removed" << std::endl;
       m_canIsActive = false;
     }
   }
